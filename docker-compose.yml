@@ -1,0 +1,18 @@
+version: "3"
+services:
+  pyrpg_game:
+    image: registry.jonas.domains/timesz/sshmanager:stable
+    user: root
+    volumes:
+      - ./app:/var/lib/sshmanager:rw
+      - ./app/app.log:/var/log/sshmanager.log:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    ports:
+      - 5678:5678
+    environment:
+      - DISPLAY=$DISPLAY
+      - XDG_RUNTIME_DIR=/run/user/1000
+    devices:
+      - "/dev/dri:/dev/dri"
+    container_name: "SSH Manager"
+    entrypoint: "sleep infinity"

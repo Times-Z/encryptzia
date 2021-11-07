@@ -1,0 +1,76 @@
+# Etapes du CI/CD
+stages:
+  - Build
+  - Tests
+
+# ----------------------------------------------------------
+# ETAPE TESTS AUTO
+# ----------------------------------------------------------
+build-debian:
+    stage: Build
+    image: debian:10
+    script:
+      - apt-get update -y && apt-get install curl alien -y
+      - |-
+        mkdir -p /tmp/app/var/lib/sshmanager
+        cp -R ./app/* /tmp/app/var/lib/sshmanager
+        mkdir -p /tmp/app/usr/local/bin
+        cp ./build/launcher.sh /tmp/app/usr/local/bin/sshmanager
+        cp -R ./build/DEBIAN /tmp/app
+        chmod 755 -R /tmp/app
+      - dpkg-deb -b /tmp/app /tmp/sshmanager.deb
+      - |-
+        [ -f /tmp/sshmanager.deb ] && echo "Build completed" || exit 1
+
+build-docker-dev:
+    stage: Build
+    image: docker:stable
+    when: manual
+    script:
+      - docker build -t "$CI_REGISTRY_IMAGE:stable" .
+      - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+      - docker push "$CI_REGISTRY_IMAGE:stable"
+
+
+# build-rhel:
+#     stage: Build
+#     image: debian:10
+#     script:
+#       - apt-get update -y && apt-get install curl alien -y
+#       - mv ./DEBIAN ./app
+#       - chmod 0755 -R ./app
+#       - dpkg-deb -b app /tmp/atelier.deb
+#       - cd /tmp && alien /tmp/atelier.deb --to-rpm --scripts
+#       - |-
+#         package=$(ls /tmp | grep MaxiAtelier)
+#         [ -f $package ] && echo "Build completed" || exit 1
+
+install-debian:
+    stage: Tests
+    image: debian:10
+    script:
+      - apt-get update -y && apt-get install curl alien -y
+      - |-
+        mkdir -p /tmp/app/var/lib/sshmanager
+        cp -R ./app/* /tmp/app/var/lib/sshmanager
+        mkdir -p /tmp/app/usr/local/bin
+        cp ./build/launcher.sh /tmp/app/usr/local/bin/sshmanager
+        cp -R ./build/DEBIAN /tmp/app
+        chmod 755 -R /tmp/app
+      - dpkg-deb -b /tmp/app /tmp/sshmanager.deb
+      - apt install /tmp/sshmanager.deb -y
+    needs: ["build-debian"]
+
+# install-rhel:
+#     stage: Tests
+#     image: centos:7
+#     script:
+#       - yum install -y epel-release && yum install -y alien
+#       - mv ./DEBIAN ./app
+#       - chmod 0755 -R ./app
+#       - dpkg-deb -b app /tmp/atelier.deb
+#       - cd /tmp && alien /tmp/atelier.deb --to-rpm --scripts
+#       - |-
+#         package=$(ls /tmp | grep MaxiAtelier)
+#         rpm -i --replacefiles /tmp/$package
+#     needs: ["build-rhel"]
