@@ -6,6 +6,8 @@ ENV XDG_RUNTIME_DIR /run/user/1000
 RUN apt-get update && apt-get install -y python3-pip \
                                         python3-pyqt5 \
                                         sudo \
+                                        ssh \
+                                        xterm \
                                         && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir cryptography

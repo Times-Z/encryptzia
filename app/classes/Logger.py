@@ -3,8 +3,6 @@ import datetime
 import os
 import sys
 
-import requests
-
 from .Singleton import Singleton
 
 

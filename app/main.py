@@ -1,8 +1,12 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import sys, os
+import sys, os, base64, json
 from PyQt5.QtWidgets import *
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.fernet import Fernet, InvalidToken
 from PyQt5 import QtCore, QtGui
 from classes import Logger
 
@@ -50,106 +54,207 @@ class App(QApplication):
         self.logger.debug('Python version ' + str(sys.version_info.major)
             + '.' + str(sys.version_info.micro) + '.' + str(sys.version_info.minor)
         )
-        self.logger.info('starting app')
+        self.logger.info('Starting app')
         self.build_ui()
 
     def build_ui(self) -> QWidget:
         """
             Build main widget
         """
-        self.main_window = QWidget()
-        self.main_window.setWindowTitle("SSH Manager")
-        self.main_window.setWindowFlags(QtCore.Qt.MSWindowsOwnDC)
+        # Define all widget
+        self.askPass()
 
+        self.main_window = QWidget()
         with open(self.rootPath + '/assets/style.css','r') as styleSheet:
             self.main_window.setStyleSheet(styleSheet.read())
-
+        self.main_window.setWindowTitle("SSH Manager")
+        self.menuBar = QMenuBar(self.main_window)
+        fileMenu = self.menuBar.addMenu('File')
         self.layout = QGridLayout()
-
-        # connection list & buttons
         self.connectionList = QListWidget()
-        self.init()
-        self.addButton = QPushButton('Add ssh connection')
-        self.deleteButton = QPushButton('Delete ssh connection')
+        self.refreshConnectionList()
+        self.connectionList.itemClicked.connect(self.defineCurrentItem)
+        self.connectionList.itemDoubleClicked.connect(self.openSshWindow)
 
+        addButton = QPushButton('Add ssh connection')
+        deleteButton = QPushButton('Delete ssh connection')
+
+        self.layout.addWidget(self.menuBar)
         self.layout.addWidget(self.connectionList)
-        self.layout.addWidget(self.addButton)
-        self.layout.addWidget(self.deleteButton)
+        self.layout.addWidget(addButton)
+        self.layout.addWidget(deleteButton)
+
+        saveAction = QAction('Save', self)
+        exitAction = QAction('Exit', self)
+        aboutAction = QAction('About', self)
+
+        saveAction.triggered.connect(self.save)
+        fileMenu.addAction(saveAction)
+        exitAction.triggered.connect(QtCore.QCoreApplication.quit)
+        fileMenu.addAction(exitAction)
+        aboutAction.triggered.connect(self.showAbout)
+        self.menuBar.addAction(aboutAction)
+
         self.main_window.setLayout(self.layout)
 
-        self.addButton.clicked.connect(self.add_connection)
-        self.deleteButton.clicked.connect(self.delete_connection)
+        addButton.clicked.connect(self.add_connection_window)
+        deleteButton.clicked.connect(self.delete_connection)
         self.main_window.show()
         self.main_window.move(0,0)
-        self.logger.info('Build ui')
+        self.logger.info('Build main ui')
 
         return self.main_window
 
-    def init(self):
+    def askPass(self):
         """
             Load connections from encrypted file
         """
-        first=False
-        if not os.path.exists(os.path.dirname(self.configPath)):
-            first=True
-            self.logger.info('Creating ' + self.configPath)
-            os.makedirs(os.path.dirname(self.configPath))
-            with open(self.configPath, "w") as f:
-                f.write('')
-
-        dialog = QDialog()
+        self.logger.info('Build password ask ui')
+        self.askPasswordWindow = QDialog()
         layout = QGridLayout()
         pwdField = QLineEdit()
-        dialog.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint, True)
+        self.askPasswordWindow.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint, True)
+        acceptBtn = QPushButton('unlock')
+        self.askPasswordWindow.setWindowTitle("Unlock manager")
+        pwdField.setPlaceholderText('Your password')
+        pwdField.setEchoMode(QLineEdit.Password)
 
-        if first:
-            retypePwdField = QLineEdit()
-            acceptBtn = QPushButton('create')
-            dialog.setWindowTitle("Set password")
-            pwdField.setPlaceholderText('Your password')
-            pwdField.setEchoMode(QLineEdit.Password)
-            retypePwdField.setPlaceholderText('Retrype your password')
-            retypePwdField.setEchoMode(QLineEdit.Password)
+        layout.addWidget(pwdField)
+        layout.addWidget(acceptBtn)
+        self.askPasswordWindow.setLayout(layout)
+        acceptBtn.clicked.connect(lambda: self.load_connection(pwdField))
+        self.askPasswordWindow.exec_()
 
-            layout.addWidget(pwdField)
-            layout.addWidget(retypePwdField)
-            layout.addWidget(acceptBtn)
-            dialog.setLayout(layout)
-            acceptBtn.clicked.connect(lambda: self.setPswd(pwdField))
-            dialog.exec_()
-        else:
-            acceptBtn = QPushButton('unlock')
-            dialog.setWindowTitle("Unlock manager")
-            pwdField.setPlaceholderText('Your password')
-            pwdField.setEchoMode(QLineEdit.Password)
+    def genOneTimeKey(self, passwd):
+        self.logger.info('Gen one time key')
+        password = passwd.encode()
+        salt = b'8qRA9Y8Q6z'
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=100000,
+            backend=default_backend()
+        )
+        key = base64.urlsafe_b64encode(kdf.derive(password))
+        return key
 
-            layout.addWidget(pwdField)
-            layout.addWidget(acceptBtn)
-            dialog.setLayout(layout)
-            acceptBtn.clicked.connect(lambda: self.load_connection(pwdField))
-            dialog.exec_()
-
-
-    def setPswd(self, field):
-        passwd = field.text()
-        self.logger.debug(passwd)
-
+    def save(self):
+        """
+            save configuration
+        """
+        encrypted = self.fernet.encrypt((json.dumps(self.config)).encode("utf-8"))
+        with open(self.configPath, "wb") as f:
+                f.write(encrypted)
+        self.logger.info('saved')
 
     def load_connection(self, field):
         passwd = field.text()
-        self.logger.debug(passwd)
+        key = self.genOneTimeKey(passwd)
+        self.fernet = Fernet(key)
+        if not os.path.exists(os.path.dirname(self.configPath)):
+            self.logger.info('Creating ' + self.configPath)
+            os.makedirs(os.path.dirname(self.configPath))
+            with open(self.configPath, "wb") as f:
+                encrypted = self.fernet.encrypt(b'{"entries": []}')
+                f.write(encrypted)
+        try:
+            with open(self.configPath, "rb") as f:
+                data = f.read()
+            self.config = json.loads(self.fernet.decrypt(data))
+            self.logger.info('Decrypt data ok')
+        except InvalidToken:
+            exit(0)
+        return self.askPasswordWindow.close()
 
-    def add_connection(self):
+    def add_connection_window(self):
         """
             add ssh connection
         """
-        self.logger.debug('add ssh connection')
+        self.logger.info('Build add ssh connection ui')
+        self.addConnectionWindow = QDialog()
+        self.addConnectionWindow.setWindowTitle('New ssh connection')
+        layout = QFormLayout()
+        nameField = QLineEdit()
+        usernameFied = QLineEdit()
+        ipField = QLineEdit()
+        portField = QLineEdit()
+        passwordField = QLineEdit()
+        addBtn = QPushButton('add')
+
+        nameField.setPlaceholderText('Common name')
+        usernameFied.setPlaceholderText('Username')
+        ipField.setPlaceholderText('192.168.1.9')
+        portField.setPlaceholderText('22 (default)')
+        passwordField.setPlaceholderText('123456')
+
+        layout.addWidget(nameField)
+        layout.addWidget(usernameFied)
+        layout.addWidget(ipField)
+        layout.addWidget(portField)
+        layout.addWidget(passwordField)
+        layout.addWidget(addBtn)
+
+        addBtn.clicked.connect(lambda: self.add_connection_process({
+                "name": nameField,
+                "username": usernameFied,
+                "ip": ipField,
+                "port": portField,
+                "password": passwordField
+            }))
+        self.addConnectionWindow.setLayout(layout)
+        self.addConnectionWindow.exec_()
+
+    def add_connection_process(self, params):
+        data = {
+            "name": params.get('name').text(),
+            "username": params.get('username').text(),
+            "ip": params.get('ip').text(),
+            "port": (params.get('port').text()) if (params.get('port').text()) != "" else "22",
+            "password": params.get('password').text()
+        }
+        self.config['entries'].append(data)
+        self.refreshConnectionList()
+        self.addConnectionWindow.close()
+
+    def refreshConnectionList(self):
+        self.connectionList.clear()
+        for entrie in self.config['entries']:
+            item = QListWidgetItem(entrie['name'])
+            item.setToolTip('IP : '+ entrie['ip'])
+            self.connectionList.addItem(item)
+            
+        self.logger.info('Refresh connection list')
 
     def delete_connection(self):
         """
             delete ssh connection
         """
         self.logger.debug('delete ssh connection')
+
+    def defineCurrentItem(self, item):
+        self.currentSelected = item
+        self.logger.info('Current item : ' + item.text())
+    
+    def openSshWindow(self, item):
+        self.logger.info('Open ssh window for ' + item.text())
+        for entrie in self.config['entries']:
+            if entrie['name'] == item.text():
+                connection = entrie
+                break
+        command = "ssh " + connection['username'] + '@' + connection['ip']
+        os.system("xterm -e 'bash -c \""+command+";bash\"'")
+
+    def showAbout(self):
+        self.logger.info('Build about ui')
+        w = QMessageBox()
+        w.setWindowTitle('About')
+        w.setText("""
+            <div>Program write by Jonas Bertin</div>
+            <div>2021</div>
+        """)
+        w.resize(100, 100)
+        w.exec_()
 
 if __name__ == '__main__':
     app = App(sys.argv)
