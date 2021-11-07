@@ -1,0 +1,6 @@
+#!/bin/bash
+
+PATH=$PATH:/usr/local/bin
+touch /var/log/sshmanager.log
+chmod 766 /var/log/sshmanager.log
+pip3 install --quiet --no-cache-dir cryptography
