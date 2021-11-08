@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QAction, QDialog, QFormLayout, QGridLayout, QLineEdit, QListWidget, QListWidgetItem, QMenuBar, QMessageBox, QPushButton, QWidget
+from PyQt5.QtWidgets import QAction, QCheckBox, QDial, QDialog, QFormLayout, QGridLayout, QLineEdit, QListWidget, QListWidgetItem, QMenuBar, QMessageBox, QPushButton, QWidget
 
 from .Singleton import Singleton
 
@@ -14,39 +14,40 @@ class Display():
         self.App = params.get('app')
 
     def ask_password_ui(self) -> QDialog:
-        askPasswordWindow = QDialog()
+        window = QDialog()
         layout = QGridLayout()
         pwdField = QLineEdit()
-        askPasswordWindow.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint, True)
+        window.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint, True)
         acceptBtn = QPushButton('unlock')
-        askPasswordWindow.setWindowTitle("Unlock manager")
+        window.setWindowTitle("Unlock manager")
         pwdField.setPlaceholderText('Your password')
         pwdField.setEchoMode(QLineEdit.Password)
+        pwdField.textEdited.connect(lambda: self.toogle_echo_password(pwdField))
 
         layout.addWidget(pwdField)
         layout.addWidget(acceptBtn)
-        askPasswordWindow.setLayout(layout)
+        window.setLayout(layout)
 
-        self.App.logger.debug('Build ask password ui')
+        self.App.logger.info('Build ask password ui')
         acceptBtn.clicked.connect(lambda: self.App.load_connection({
-            'ui': askPasswordWindow,
+            'ui': window,
             'field': pwdField
         }))
-        return askPasswordWindow.exec_()
+        return window.exec_()
 
     def main_ui(self) -> QWidget:
-        self.main_window = QWidget()
+        self.mainWindow = QWidget()
         with open(self.App.rootPath + '/assets/style.css','r') as styleSheet:
-            self.main_window.setStyleSheet(styleSheet.read())
-        self.main_window.setWindowTitle("SSH Manager")
-        menuBar = QMenuBar(self.main_window)
+            self.mainWindow.setStyleSheet(styleSheet.read())
+        self.mainWindow.setWindowTitle("SSH Manager")
+        menuBar = QMenuBar(self.mainWindow)
         fileMenu = menuBar.addMenu('File')
-        editMenu = menuBar.addMenu('Edit')
+        editMenu = menuBar.addMenu('Edition')
         layout = QGridLayout()
         self.connectionList = QListWidget()
         self.refresh_connection_list()
-        self.connectionList.itemClicked.connect(self.App.defineCurrentItem)
-        self.connectionList.itemDoubleClicked.connect(self.App.openSshWindow)
+        self.connectionList.itemClicked.connect(self.App.define_current_item)
+        self.connectionList.itemDoubleClicked.connect(self.App.open_ssh_window)
 
         addButton = QPushButton('Add ssh connection')
         deleteButton = QPushButton('Delete ssh connection')
@@ -58,10 +59,10 @@ class Display():
 
         saveAction = QAction('Save', self.App)
         exitAction = QAction('Exit', self.App)
+        settingsAction = QAction('Settings', self.App)
         aboutAction = QAction('About', self.App)
         editAction = QAction('Edit selected connection', self.App)
         deleteAction = QAction('Delete selected connection', self.App)
-        deleteConfig = QAction('Delete all configuration', self.App)
 
         saveAction.triggered.connect(self.App.save)
         fileMenu.addAction(saveAction)
@@ -72,25 +73,25 @@ class Display():
         editMenu.addAction(editAction)
         deleteAction.triggered.connect(self.delete_connection_ui)
         editMenu.addAction(deleteAction)
-        deleteConfig.triggered.connect(self.delete_config_ui)
-        editMenu.addAction(deleteConfig)
 
+        settingsAction.triggered.connect(self.settings_ui)
+        menuBar.addAction(settingsAction)
         aboutAction.triggered.connect(self.about_ui)
         menuBar.addAction(aboutAction)
 
-        self.main_window.setLayout(layout)
+        self.mainWindow.setLayout(layout)
 
         addButton.clicked.connect(self.add_connection_ui)
         deleteButton.clicked.connect(self.delete_connection_ui)
-        self.main_window.show()
-        self.main_window.move(0,0)
+        self.mainWindow.show()
+        self.mainWindow.move(0,0)
         self.App.logger.info('Build main ui')
 
-        return self.main_window
+        return self.mainWindow
 
     def add_connection_ui(self) -> QDialog:
-        addConnectionWindow = QDialog()
-        addConnectionWindow.setWindowTitle('New ssh connection')
+        window = QDialog()
+        window.setWindowTitle('New ssh connection')
 
         layout = QFormLayout()
         nameField = QLineEdit()
@@ -114,22 +115,22 @@ class Display():
         layout.addWidget(addBtn)
 
         addBtn.clicked.connect(lambda: self.App.add_connection_process({
-                "ui": addConnectionWindow,
+                "ui": window,
                 "name": nameField,
                 "username": usernameFied,
                 "ip": ipField,
                 "port": portField,
                 "password": passwordField
             }))
-        addConnectionWindow.setLayout(layout)
+        window.setLayout(layout)
         self.App.logger.info('Build add ssh connection ui')
-        return addConnectionWindow.exec_()
+        return window.exec_()
 
     def edit_connection_ui(self) -> QDialog:
         if self.App.currentSelected:
-            editConnectionWindow = QDialog()
-            editConnectionWindow.setWindowTitle('New ssh connection')
-            data = self.App.getDataByItem(self.App.currentSelected)
+            window = QDialog()
+            window.setWindowTitle('New ssh connection')
+            data = self.App.get_data_by_item(self.App.currentSelected)
             layout = QFormLayout()
             nameField = QLineEdit(data['name'])
             usernameFied = QLineEdit(data['username'])
@@ -146,24 +147,98 @@ class Display():
             layout.addWidget(addBtn)
 
             addBtn.clicked.connect(lambda: self.App.edit_connection_process({
-                    "ui": editConnectionWindow,
+                    "ui": window,
                     "name": nameField,
                     "username": usernameFied,
                     "ip": ipField,
                     "port": portField,
                     "password": passwordField
                 }))
-            editConnectionWindow.setLayout(layout)
+            window.setLayout(layout)
             self.App.logger.info(
                 'Build edit ssh connection ui for item ' + self.App.currentSelected.text()
             )
-            return editConnectionWindow.exec_()
+            return window.exec_()
 
-    def delete_connection_ui(self):
+    def delete_connection_ui(self) -> None:
+        item = self.App.currentSelected
+        window = QMessageBox()
+        window.setIcon(QMessageBox.Warning)
+        window.setWindowTitle('WARNING')
+        window.setText("""
+        <div style="color:red">Deleting {0}</div>
+        <div>Are you sure ?</div>
+        """.format(
+            item.text()
+        ))
+        window.addButton(QMessageBox.Yes)
+        window.addButton(QMessageBox.No)
+
         self.App.logger.debug('Build delete ssh warning')
+        result = window.exec_()
+        self.App.delete_connection_process(result, item)
+        self.refresh_connection_list()
 
-    def delete_config_ui(self):
+    def delete_config_ui(self) -> None:
+        window = QMessageBox()
+        window.setIcon(QMessageBox.Warning)
+        window.setWindowTitle('WARNING')
+        window.setText("""
+        <div style="color:red">Deleting all the configuration</div>
+        <div>Are you sure ?</div>
+        """)
+        window.addButton(QMessageBox.Yes)
+        window.addButton(QMessageBox.No)
+
         self.App.logger.debug('Build delete config warning')
+        result = window.exec_()
+        self.App.delete_config_process(result)
+        self.refresh_connection_list()
+
+    def settings_ui(self) -> QDialog:
+        window = QDialog()
+        window.setWindowTitle('Settings')
+        window.setFixedSize(400, 400)
+
+        layout = QGridLayout()
+
+        autoSaveCheckbox = QCheckBox('Auto save')
+        deleteConfigBtn = QPushButton('Delete all configuration')
+        changePasswordBtn = QPushButton('Change password')
+
+        autoSaveCheckbox.setChecked(bool(self.App.config['autoSave']))
+
+        autoSaveCheckbox.stateChanged.connect(lambda:
+        self.App.toogle_auto_save(autoSaveCheckbox)
+        )
+        deleteConfigBtn.clicked.connect(self.delete_config_ui)
+        changePasswordBtn.clicked.connect(self.change_password_ui)
+
+        window.setLayout(layout)
+
+        layout.addWidget(autoSaveCheckbox)
+        layout.addWidget(deleteConfigBtn)
+        layout.addWidget(changePasswordBtn)
+
+        self.App.logger.info('Build settings ui')
+        return window.exec_()
+
+    def change_password_ui(self) -> QDialog:
+        window = QDialog()
+        layout = QGridLayout()
+        window.setWindowTitle('Set password')
+
+        password = QLineEdit()
+        repassword = QLineEdit()
+        password.setEchoMode(QLineEdit.Password)
+        repassword.setEchoMode(QLineEdit.Password)
+
+        layout.addWidget(password)
+        layout.addWidget(repassword)
+
+        window.setLayout(layout)
+
+        return window.exec_()
 
     def about_ui(self) -> QMessageBox:
         window = QMessageBox()
@@ -179,8 +254,13 @@ class Display():
 
     def refresh_connection_list(self) -> None:
         self.connectionList.clear()
-        for entrie in self.App.config['entries']:
-            item = QListWidgetItem(entrie['name'])
-            item.setToolTip('IP : '+ entrie['ip'])
-            self.connectionList.addItem(item)
+        if self.App.config is not None:
+            for entrie in self.App.config['entries']:
+                item = QListWidgetItem(entrie['name'])
+                item.setToolTip('IP : '+ entrie['ip'])
+                self.connectionList.addItem(item)
         self.App.logger.info('Refresh connection list')
+
+    def toogle_echo_password(self, item):
+        item.setEchoMode(QLineEdit.Normal)
+        QtCore.QTimer.singleShot(500, lambda: item.setEchoMode(QLineEdit.Password))
