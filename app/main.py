@@ -46,11 +46,13 @@ class App(QApplication):
 
     def __init__(self, sys_argv):
         super(App, self).__init__(sys_argv)
+        self.programName = 'Maxi Manager'
+        self.programVersion = "0.1.0"
         self.rootPath = os.path.dirname(os.path.realpath(__file__))
         self.logPath = '/var/log/sshmanager.log'
         self.configPath = os.environ.get('HOME')+'/.config/sshmanager/user.json'
         self.currentSelected = None
-        self.display = Display.Instance({'app': self, 'rootPath': self.rootPath})
+        self.display = Display.Instance({'app': self})
         self.logger = Logger.Instance()
         self.logger.config(self.logPath)
         self.logger.debug('Os : ' + sys.platform)
@@ -58,7 +60,6 @@ class App(QApplication):
             + '.' + str(sys.version_info.micro) + '.' + str(sys.version_info.minor)
         )
         self.logger.info('Starting app')
-        self.run()
 
     def run(self) -> QWidget:
         """
@@ -67,7 +68,7 @@ class App(QApplication):
         self.display.ask_password_ui()
         return self.display.main_ui()
 
-    def genOneTimeKey(self, passwd):
+    def genOneTimeKey(self, passwd: str) -> bytes:
         self.logger.info('Gen one time key')
         password = passwd.encode()
         salt = b'8qRA9Y8Q6z'
@@ -81,16 +82,20 @@ class App(QApplication):
         key = base64.urlsafe_b64encode(kdf.derive(password))
         return key
 
-    def save(self):
+    def save(self) -> bool:
         """
             save configuration
         """
-        encrypted = self.fernet.encrypt((json.dumps(self.config)).encode("utf-8"))
-        with open(self.configPath, "wb") as f:
-                f.write(encrypted)
-        self.logger.info('saved')
+        try:
+            encrypted = self.fernet.encrypt((json.dumps(self.config)).encode("utf-8"))
+            with open(self.configPath, "wb") as f:
+                    f.write(encrypted)
+            self.logger.info('saved')
+            return True
+        except:
+            return False
 
-    def load_connection(self, params):
+    def load_connection(self, params: dict) -> bool:
         passwd = (params.get('field')).text()
         key = self.genOneTimeKey(passwd)
         self.fernet = Fernet(key)
@@ -109,7 +114,7 @@ class App(QApplication):
             exit(0)
         return (params.get('ui')).close()
 
-    def add_connection_process(self, params):
+    def add_connection_process(self, params: dict) -> bool:
         data = {
             "name": params.get('name').text(),
             "username": params.get('username').text(),
@@ -119,23 +124,24 @@ class App(QApplication):
         }
         self.config['entries'].append(data)
         self.display.refresh_connection_list()
-        (params.get('ui')).close()
+        return (params.get('ui')).close()
 
-    def edit_connection_process(self, params):
+    def edit_connection_process(self, params: dict) -> bool:
         self.logger.debug(str(params))
         (params.get('ui')).close()
 
-    def defineCurrentItem(self, item):
+    def defineCurrentItem(self, item: QListWidgetItem) -> QListWidgetItem:
         self.currentSelected = item
         self.logger.info('Current item : ' + item.text())
+        return self.currentSelected
     
-    def openSshWindow(self, item):
+    def openSshWindow(self, item: QListWidgetItem):
         self.logger.info('Open ssh window for ' + item.text())
-        connection = self.getDataByItem(self.currentSelected)
+        connection = self.getDataByItem(item)
         command = self.rootPath + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + connection['password']
         os.system("xterm -e 'bash -c \""+command+";\"'")
 
-    def getDataByItem(self, item):
+    def getDataByItem(self, item: QListWidgetItem) -> dict:
         for entrie in self.config['entries']:
             if entrie['name'] == item.text():
                 data = entrie
@@ -145,4 +151,5 @@ class App(QApplication):
 if __name__ == '__main__':
     app = App(sys.argv)
     app.setWindowIcon(QtGui.QIcon(app.rootPath + '/assets/imgs/icon.png'))
+    app.run()
     sys.exit(app.exec_())

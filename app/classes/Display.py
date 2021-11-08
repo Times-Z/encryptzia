@@ -12,9 +12,8 @@ class Display():
     
     def __init__(self, params):
         self.App = params.get('app')
-        self.rootPath = params.get('rootPath')
 
-    def ask_password_ui(self):
+    def ask_password_ui(self) -> QDialog:
         askPasswordWindow = QDialog()
         layout = QGridLayout()
         pwdField = QLineEdit()
@@ -35,9 +34,9 @@ class Display():
         }))
         return askPasswordWindow.exec_()
 
-    def main_ui(self):
+    def main_ui(self) -> QWidget:
         self.main_window = QWidget()
-        with open(self.rootPath + '/assets/style.css','r') as styleSheet:
+        with open(self.App.rootPath + '/assets/style.css','r') as styleSheet:
             self.main_window.setStyleSheet(styleSheet.read())
         self.main_window.setWindowTitle("SSH Manager")
         menuBar = QMenuBar(self.main_window)
@@ -61,13 +60,21 @@ class Display():
         exitAction = QAction('Exit', self.App)
         aboutAction = QAction('About', self.App)
         editAction = QAction('Edit selected connection', self.App)
+        deleteAction = QAction('Delete selected connection', self.App)
+        deleteConfig = QAction('Delete all configuration', self.App)
 
         saveAction.triggered.connect(self.App.save)
         fileMenu.addAction(saveAction)
         exitAction.triggered.connect(QtCore.QCoreApplication.quit)
         fileMenu.addAction(exitAction)
+
         editAction.triggered.connect(self.edit_connection_ui)
         editMenu.addAction(editAction)
+        deleteAction.triggered.connect(self.delete_connection_ui)
+        editMenu.addAction(deleteAction)
+        deleteConfig.triggered.connect(self.delete_config_ui)
+        editMenu.addAction(deleteConfig)
+
         aboutAction.triggered.connect(self.about_ui)
         menuBar.addAction(aboutAction)
 
@@ -81,7 +88,7 @@ class Display():
 
         return self.main_window
 
-    def add_connection_ui(self):
+    def add_connection_ui(self) -> QDialog:
         addConnectionWindow = QDialog()
         addConnectionWindow.setWindowTitle('New ssh connection')
 
@@ -118,7 +125,7 @@ class Display():
         self.App.logger.info('Build add ssh connection ui')
         return addConnectionWindow.exec_()
 
-    def edit_connection_ui(self):
+    def edit_connection_ui(self) -> QDialog:
         if self.App.currentSelected:
             editConnectionWindow = QDialog()
             editConnectionWindow.setWindowTitle('New ssh connection')
@@ -155,18 +162,22 @@ class Display():
     def delete_connection_ui(self):
         self.App.logger.debug('Build delete ssh warning')
 
-    def about_ui(self):
+    def delete_config_ui(self):
+        self.App.logger.debug('Build delete config warning')
+
+    def about_ui(self) -> QMessageBox:
         window = QMessageBox()
         window.setWindowTitle('About')
         window.setText("""
-            <div>Program write by Jonas Bertin</div>
+            <div>{0} - V.{1}</div>
+            <div>Write by <span style="color:red">Jonas Bertin</span></div>
             <div>2021</div>
-        """)
+        """.format(self.App.programName, self.App.programVersion))
         window.resize(100, 100)
         self.App.logger.info('Build about ui')
         return window.exec_()
 
-    def refresh_connection_list(self):
+    def refresh_connection_list(self) -> None:
         self.connectionList.clear()
         for entrie in self.App.config['entries']:
             item = QListWidgetItem(entrie['name'])
