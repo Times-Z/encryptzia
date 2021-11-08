@@ -22,7 +22,7 @@ class Display():
         window.setWindowTitle("Unlock manager")
         pwdField.setPlaceholderText('Your password')
         pwdField.setEchoMode(QLineEdit.Password)
-        pwdField.textEdited.connect(lambda: self.toogle_echo_password(pwdField))
+        pwdField.textChanged.connect(lambda: self.toogle_echo_password(pwdField))
 
         layout.addWidget(pwdField)
         layout.addWidget(acceptBtn)
@@ -161,23 +161,24 @@ class Display():
             return window.exec_()
 
     def delete_connection_ui(self) -> None:
-        item = self.App.currentSelected
-        window = QMessageBox()
-        window.setIcon(QMessageBox.Warning)
-        window.setWindowTitle('WARNING')
-        window.setText("""
-        <div style="color:red">Deleting {0}</div>
-        <div>Are you sure ?</div>
-        """.format(
-            item.text()
-        ))
-        window.addButton(QMessageBox.Yes)
-        window.addButton(QMessageBox.No)
+        if self.App.currentSelected is not None:
+            item = self.App.currentSelected
+            window = QMessageBox()
+            window.setIcon(QMessageBox.Warning)
+            window.setWindowTitle('WARNING')
+            window.setText("""
+            <div style="color:red">Deleting {0}</div>
+            <div>Are you sure ?</div>
+            """.format(
+                item.text()
+            ))
+            window.addButton(QMessageBox.Yes)
+            window.addButton(QMessageBox.No)
 
-        self.App.logger.debug('Build delete ssh warning')
-        result = window.exec_()
-        self.App.delete_connection_process(result, item)
-        self.refresh_connection_list()
+            self.App.logger.debug('Build delete ssh warning')
+            result = window.exec_()
+            self.App.delete_connection_process(result, item)
+            self.refresh_connection_list()
 
     def delete_config_ui(self) -> None:
         window = QMessageBox()
@@ -232,6 +233,8 @@ class Display():
         repassword = QLineEdit()
         password.setEchoMode(QLineEdit.Password)
         repassword.setEchoMode(QLineEdit.Password)
+
+        
 
         layout.addWidget(password)
         layout.addWidget(repassword)

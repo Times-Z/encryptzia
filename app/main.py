@@ -92,7 +92,7 @@ class App(QApplication):
         }
         self.config['entries'].append(data)
         self.display.refresh_connection_list()
-        if self.config['autoSave'] == True:
+        if self.config['autoSave'] == "True":
             self.save()
         return (params.get('ui')).close()
 
@@ -109,7 +109,7 @@ class App(QApplication):
                 i+=1
             del self.config['entries'][i]
             self.logger.info('Deleted entrie number ' + str(i))
-            if self.config['autoSave'] == True:
+            if self.config['autoSave'] == "True":
                 self.save()
             return True
         else:
@@ -120,7 +120,7 @@ class App(QApplication):
             shutil.rmtree(os.environ.get('HOME') + '/.config/sshmanager')
             self.config = None
             self.create_config()
-            if self.config['autoSave'] == True:
+            if self.config['autoSave'] == "True":
                 self.save()
             return True
         else:
@@ -163,6 +163,7 @@ class App(QApplication):
         self.logger.info(
             'AutoSave from ' + str(actual) + ' to ' + str(self.config['autoSave'])
         )
+        self.save()
         return self.config['autoSave']
 
 if __name__ == '__main__':
