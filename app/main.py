@@ -1,15 +1,22 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import sys, os, base64, json, shutil
-from PyQt5.QtWidgets import *
+import base64
+import json
+import os
+import shutil
+import sys
+
+from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.fernet import Fernet, InvalidToken
 from PyQt5 import QtGui
-from classes import Display
-from classes import Logger
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QListWidgetItem,
+                             QMessageBox, QWidget)
+
+from classes import Display, Logger
+
 
 class App(QApplication):
     """

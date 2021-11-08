@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QAction, QCheckBox, QDial, QDialog, QFormLayout, QGridLayout, QLineEdit, QListWidget, QListWidgetItem, QMenuBar, QMessageBox, QPushButton, QWidget
+from PyQt5.QtWidgets import (QAction, QCheckBox, QDial, QDialog, QFormLayout,
+                             QGridLayout, QLineEdit, QListWidget,
+                             QListWidgetItem, QMenuBar, QMessageBox,
+                             QPushButton, QWidget)
 
 from .Singleton import Singleton
+
 
 @Singleton
 class Display():
