@@ -3,7 +3,7 @@ FROM ubuntu:20.04
 ARG DEBIAN_FRONTEND=noninteractive
 ENV XDG_RUNTIME_DIR /run/user/1000
 
-RUN apt-get update && apt-get install -y python3-pip \
+RUN apt-get update && apt-get install -y expect python3-pip \
                                         python3-pyqt5 \
                                         sudo \
                                         ssh \
