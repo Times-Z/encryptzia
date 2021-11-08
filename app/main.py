@@ -48,6 +48,7 @@ class App(QApplication):
         self.rootPath = os.path.dirname(os.path.realpath(__file__))
         self.logPath = '/var/log/sshmanager.log'
         self.configPath = os.environ.get('HOME')+'/.config/sshmanager/user.json'
+        self.currentSelected = None
         self.logger = Logger.Instance()
         self.logger.config(self.logPath)
         self.logger.debug('Os : ' + sys.platform)
@@ -70,6 +71,7 @@ class App(QApplication):
         self.main_window.setWindowTitle("SSH Manager")
         self.menuBar = QMenuBar(self.main_window)
         fileMenu = self.menuBar.addMenu('File')
+        editMenu = self.menuBar.addMenu('Edit')
         self.layout = QGridLayout()
         self.connectionList = QListWidget()
         self.refreshConnectionList()
@@ -87,11 +89,14 @@ class App(QApplication):
         saveAction = QAction('Save', self)
         exitAction = QAction('Exit', self)
         aboutAction = QAction('About', self)
+        editAction = QAction('Edit selected connection', self)
 
         saveAction.triggered.connect(self.save)
         fileMenu.addAction(saveAction)
         exitAction.triggered.connect(QtCore.QCoreApplication.quit)
         fileMenu.addAction(exitAction)
+        editAction.triggered.connect(self.edit_connection_window)
+        editMenu.addAction(editAction)
         aboutAction.triggered.connect(self.showAbout)
         self.menuBar.addAction(aboutAction)
 
@@ -178,7 +183,7 @@ class App(QApplication):
         nameField = QLineEdit()
         usernameFied = QLineEdit()
         ipField = QLineEdit()
-        portField = QLineEdit()
+        portField = QLineEdit('22')
         passwordField = QLineEdit()
         addBtn = QPushButton('add')
 
@@ -217,6 +222,37 @@ class App(QApplication):
         self.refreshConnectionList()
         self.addConnectionWindow.close()
 
+    def edit_connection_window(self):
+        if self.currentSelected:
+            self.logger.info('Build edit ssh connection ui for item ' + self.currentSelected.text())
+            self.editConnectionWindow = QDialog()
+            self.editConnectionWindow.setWindowTitle('New ssh connection')
+            data = self.getDataByItem(self.currentSelected)
+            layout = QFormLayout()
+            nameField = QLineEdit(data['name'])
+            usernameFied = QLineEdit(data['username'])
+            ipField = QLineEdit(data['ip'])
+            portField = QLineEdit(data['port'])
+            passwordField = QLineEdit(data['password'])
+            addBtn = QPushButton('edit')
+
+            layout.addWidget(nameField)
+            layout.addWidget(usernameFied)
+            layout.addWidget(ipField)
+            layout.addWidget(portField)
+            layout.addWidget(passwordField)
+            layout.addWidget(addBtn)
+
+            addBtn.clicked.connect(lambda: self.add_connection_process({
+                    "name": nameField,
+                    "username": usernameFied,
+                    "ip": ipField,
+                    "port": portField,
+                    "password": passwordField
+                }))
+            self.editConnectionWindow.setLayout(layout)
+            self.editConnectionWindow.exec_()
+
     def refreshConnectionList(self):
         self.connectionList.clear()
         for entrie in self.config['entries']:
@@ -238,12 +274,16 @@ class App(QApplication):
     
     def openSshWindow(self, item):
         self.logger.info('Open ssh window for ' + item.text())
+        connection = self.getDataByItem(self.currentSelected)
+        command = self.rootPath + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + connection['password']
+        os.system("xterm -e 'bash -c \""+command+";\"'")
+
+    def getDataByItem(self, item):
         for entrie in self.config['entries']:
             if entrie['name'] == item.text():
-                connection = entrie
+                data = entrie
                 break
-        command = "ssh " + connection['username'] + '@' + connection['ip']
-        os.system("xterm -e 'bash -c \""+command+";bash\"'")
+        return data
 
     def showAbout(self):
         self.logger.info('Build about ui')
