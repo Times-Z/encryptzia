@@ -225,7 +225,7 @@ class Display():
             window.addButton(QMessageBox.Yes)
             window.addButton(QMessageBox.No)
 
-            self.app.logger.debug('Build delete ssh warning')
+            self.app.logger.info('Build delete ssh warning')
             result = window.exec_()
             self.app.delete_connection_process(result, item)
             self.refresh_connection_list()
@@ -242,7 +242,7 @@ class Display():
         window.addButton(QMessageBox.Yes)
         window.addButton(QMessageBox.No)
 
-        self.app.logger.debug('Build delete config warning')
+        self.app.logger.info('Build delete config warning')
         result = window.exec_()
         self.app.delete_config_process(result)
         self.refresh_connection_list()
@@ -358,7 +358,8 @@ class Display():
                     item.setToolTip('IP : '+ entrie['ip'])
                     self.connection_list.addItem(item)
         except Exception:
-            self.app.logger.crit(traceback.format_exc())
+            log = traceback.format_exc()
+            self.logger.crit(log)
             exit(1)
         self.connection_list.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
         self.app.logger.info('Refresh connection list')

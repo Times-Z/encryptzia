@@ -111,7 +111,8 @@ class App(QApplication):
             self.logger.info('Saved')
             return True
         except Exception:
-            self.logger.crit(traceback.format_exc())
+            log = traceback.format_exc()
+            self.logger.crit(log)
             return False
 
     def load_connection(self, params: dict, first_set=False) -> bool:
@@ -228,7 +229,8 @@ class App(QApplication):
                     b'{"autoSave": "True", "sshTimeout": "10", "uiTheme": "Dark", "entries": []}'
                 )
             except Exception:
-                self.logger.crit(traceback.format_exc)
+                log = traceback.format_exc()
+                self.logger.crit(log)
                 exit(1)
             with open(self.config_path, "wb") as f:
                 f.write(encrypted)
