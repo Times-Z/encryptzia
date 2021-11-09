@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import (QAction, QCheckBox, QDialog, QFormLayout,
-                             QGridLayout, QLabel, QLineEdit, QListWidget,
+                             QGridLayout, QLabel, QLayout, QLineEdit, QListWidget,
                              QListWidgetItem, QMenuBar, QMessageBox,
-                             QPushButton, QWidget)
+                             QPushButton, QRadioButton, QWidget)
 
 from .Singleton import Singleton
 
@@ -21,15 +21,20 @@ class Display():
         window = QDialog()
         layout = QGridLayout()
         pwdField = QLineEdit()
-        window.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint, True)
         acceptBtn = QPushButton('unlock')
+
+        window.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint, True)
         window.setWindowTitle("Unlock manager")
+
         pwdField.setPlaceholderText('Your password')
         pwdField.setEchoMode(QLineEdit.Password)
         pwdField.textChanged.connect(lambda: self.toogle_echo_password(pwdField))
 
-        layout.addWidget(pwdField)
-        layout.addWidget(acceptBtn)
+        self.add_widgets(layout, [
+            pwdField,
+            acceptBtn
+        ])
+
         window.setLayout(layout)
 
         self.App.logger.info('Build ask password ui')
@@ -40,34 +45,42 @@ class Display():
         return window.exec_()
 
     def main_ui(self) -> QWidget:
+
         self.mainWindow = QWidget()
-        with open(self.App.rootPath + '/assets/style.css','r') as styleSheet:
-            self.mainWindow.setStyleSheet(styleSheet.read())
-        self.mainWindow.setWindowTitle(
-            self.App.programName + ' - ' + self.App.programVersion
-        )
         menuBar = QMenuBar(self.mainWindow)
-        fileMenu = menuBar.addMenu('File')
-        editMenu = menuBar.addMenu('Edition')
         layout = QGridLayout()
         self.connectionList = QListWidget()
-        self.refresh_connection_list()
-        self.connectionList.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
-        self.connectionList.itemClicked.connect(self.App.define_current_item)
-        self.connectionList.itemDoubleClicked.connect(self.App.open_ssh_window)
-
         label = QLabel('Shortcut')
-        label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
         addButton = QPushButton('Add ssh connection')
         editButton = QPushButton('Edit selected connection')
         deleteButton = QPushButton('Delete selected connection')
 
-        layout.addWidget(menuBar)
-        layout.addWidget(self.connectionList)
-        layout.addWidget(label)
-        layout.addWidget(addButton)
-        layout.addWidget(editButton)
-        layout.addWidget(deleteButton)
+        self.refresh_connection_list()
+
+        with open(self.App.rootPath + '/assets/style.css','r') as styleSheet:
+            self.mainWindow.setStyleSheet(styleSheet.read())
+
+        self.mainWindow.setWindowTitle(
+            self.App.programName + ' - ' + self.App.programVersion
+        )
+
+        fileMenu = menuBar.addMenu('File')
+        editMenu = menuBar.addMenu('Edition')
+
+        self.connectionList.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
+        self.connectionList.itemClicked.connect(self.App.define_current_item)
+        self.connectionList.itemDoubleClicked.connect(self.App.open_ssh_window)
+
+        label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+
+        self.add_widgets(layout, [
+            menuBar,
+            self.connectionList,
+            label,
+            addButton,
+            editButton,
+            deleteButton
+        ])
 
         saveAction = QAction('Save', self.App)
         exitAction = QAction('Exit', self.App)
@@ -77,19 +90,25 @@ class Display():
         deleteAction = QAction('Delete selected connection', self.App)
 
         saveAction.triggered.connect(lambda: self.App.save(True))
-        fileMenu.addAction(saveAction)
         exitAction.triggered.connect(QtCore.QCoreApplication.quit)
-        fileMenu.addAction(exitAction)
+        self.add_actions(fileMenu, [
+            saveAction,
+            exitAction
+        ])
 
         editAction.triggered.connect(self.edit_connection_ui)
-        editMenu.addAction(editAction)
         deleteAction.triggered.connect(self.delete_connection_ui)
-        editMenu.addAction(deleteAction)
+        self.add_actions(editMenu, [
+            editAction,
+            deleteAction
+        ])
 
         settingsAction.triggered.connect(self.settings_ui)
-        menuBar.addAction(settingsAction)
         aboutAction.triggered.connect(self.about_ui)
-        menuBar.addAction(aboutAction)
+        self.add_actions(menuBar, [
+            settingsAction,
+            aboutAction
+        ])
 
         self.mainWindow.setLayout(layout)
 
@@ -121,12 +140,14 @@ class Display():
         portField.setPlaceholderText('22 (default)')
         passwordField.setPlaceholderText('123456')
 
-        layout.addWidget(nameField)
-        layout.addWidget(usernameFied)
-        layout.addWidget(ipField)
-        layout.addWidget(portField)
-        layout.addWidget(passwordField)
-        layout.addWidget(addBtn)
+        self.add_widgets(layout, [
+            nameField,
+            usernameFied,
+            ipField,
+            portField,
+            passwordField,
+            addBtn
+        ])
 
         addBtn.clicked.connect(lambda: self.App.add_connection_process({
                 "ui": window,
@@ -160,13 +181,15 @@ class Display():
                 lambda: self.toogle_echo_password(passwordField, 2000)
             )
 
-            layout.addWidget(nameField)
-            layout.addWidget(usernameFied)
-            layout.addWidget(ipField)
-            layout.addWidget(portField)
-            layout.addWidget(passwordField)
-            layout.addWidget(showPasswordBtn)
-            layout.addWidget(addBtn)
+            self.add_widgets(layout, [
+                nameField,
+                usernameFied,
+                ipField,
+                portField,
+                passwordField,
+                showPasswordBtn,
+                addBtn
+            ])
 
             addBtn.clicked.connect(lambda: self.App.edit_connection_process({
                     "ui": window,
@@ -226,16 +249,27 @@ class Display():
 
         layout = QGridLayout()
 
-        themeSelector = QListWidget()
-        themeSelector.addItems([
-            'Dark',
-            'Light'
-        ])
-        themeSelector.setStyleSheet("""
-            QListWidget {
-                max-height: 30px
+        css = """
+            QLabel {
+                max-height: 10px
             }
-        """)
+            padding: 0px
+            margin: 0px
+            top: 0px
+        """
+
+        themeLabel = QLabel('Theme')
+        themeLabel.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        darkTheme = QRadioButton('Dark', window)
+        lightTheme = QRadioButton('Light', window)
+
+        themeLabel.setStyleSheet(css)
+        darkTheme.setStyleSheet(css)
+        lightTheme.setStyleSheet(css)
+
+        darkTheme.setChecked((self.App.config['uiTheme'] == 'Dark'))
+        lightTheme.setChecked((self.App.config['uiTheme'] == 'Light'))
+
         autoSaveCheckbox = QCheckBox('Auto save')
         deleteConfigBtn = QPushButton('Delete all configuration')
         changePasswordBtn = QPushButton('Change password')
@@ -247,14 +281,19 @@ class Display():
         )
         deleteConfigBtn.clicked.connect(self.delete_config_ui)
         changePasswordBtn.clicked.connect(self.change_password_ui)
-        themeSelector.itemDoubleClicked.connect(self.App.set_style)
+        darkTheme.clicked.connect(lambda: self.App.set_style(darkTheme.text()))
+        lightTheme.clicked.connect(lambda: self.App.set_style(lightTheme.text()))
 
         window.setLayout(layout)
 
-        layout.addWidget(themeSelector)
-        layout.addWidget(autoSaveCheckbox)
-        layout.addWidget(deleteConfigBtn)
-        layout.addWidget(changePasswordBtn)
+        self.add_widgets(layout, [
+            themeLabel,
+            darkTheme,
+            lightTheme,
+            autoSaveCheckbox,
+            deleteConfigBtn,
+            changePasswordBtn
+        ])
 
         self.App.logger.info('Build settings ui')
         return window.exec_()
@@ -286,9 +325,11 @@ class Display():
             })
         )
 
-        layout.addWidget(passwordField)
-        layout.addWidget(repasswordField)
-        layout.addWidget(validateBtn)
+        self.add_widgets(layout, [
+            passwordField,
+            repasswordField,
+            validateBtn
+        ])
 
         window.setLayout(layout)
         self.App.logger.info('Build set/change password ui')
@@ -336,3 +377,13 @@ class Display():
         QtCore.QTimer.singleShot(1000, lambda: window.close())
         self.App.logger.info('Notify ' + type)
         return window.exec_()
+
+    def add_widgets(self, layout: QLayout, widgets: list) -> QLayout:
+        for widget in widgets:
+            layout.addWidget(widget)
+        return layout
+    
+    def add_actions(self, menu: QMenuBar, actions: list) -> QMenuBar:
+        for action in actions:
+            menu.addAction(action)
+        return menu

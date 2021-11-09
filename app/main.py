@@ -16,7 +16,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QListWidgetItem,
-                             QMessageBox, QWidget)
+                             QMessageBox, QRadioButton, QWidget)
 
 from classes import Display, Logger
 
@@ -31,6 +31,7 @@ class App(QApplication):
         super(App, self).__init__(sys_argv)
         self.programName = 'NaN named'
         self.programVersion = "Alpha 0.1.0"
+        self.defaultPalette = QtGui.QGuiApplication.palette()
         self.rootPath = os.path.dirname(os.path.realpath(__file__))
         self.logPath = '/var/log/sshmanager.log'
         self.configPath = os.environ.get('HOME')+'/.config/sshmanager/user.json'
@@ -50,17 +51,18 @@ class App(QApplication):
             self.load_connection({}, True)
         else:
             self.display.ask_password_ui()
+        self.set_style(self.config['uiTheme'])
         return self.display.main_ui()
 
-    def set_style(self, item) -> QtGui.QPalette:
+    def set_style(self, theme) -> QtGui.QPalette:
         self.setStyle("Fusion")
         palette = QtGui.QPalette()
-        if item.text() == 'Dark':
+        if theme == 'Dark':
             palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
             palette.setColor(QtGui.QPalette.WindowText, Qt.white)
-            palette.setColor(QtGui.QPalette.Base, QtGui.QColor(25, 25, 25))
+            palette.setColor(QtGui.QPalette.Base, QtGui.QColor(35, 35, 35))
             palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
-            palette.setColor(QtGui.QPalette.ToolTipBase, Qt.black)
+            palette.setColor(QtGui.QPalette.ToolTipBase, QtGui.QColor(25, 25, 25))
             palette.setColor(QtGui.QPalette.ToolTipText, Qt.white)
             palette.setColor(QtGui.QPalette.Text, Qt.white)
             palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
@@ -70,12 +72,14 @@ class App(QApplication):
             palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
             palette.setColor(QtGui.QPalette.HighlightedText, Qt.black)
         else:
-            self.setStyle("")
-        self.logger.info('Set palette ' + item.text())
+            palette = self.defaultPalette
+        self.config['uiTheme'] = theme
+        self.logger.info('Set palette ' + theme)
+        if self.config['autoSave'] == "True":
+            self.save(False)
         return self.setPalette(palette)
 
     def check_config(self) -> bool:
-        self.set_style(QListWidgetItem('Dark'))
         return self.create_config()
 
     def gen_one_time_key(self, passwd: str) -> bytes:
@@ -102,7 +106,7 @@ class App(QApplication):
                     f.write(encrypted)
             if notify:
                 self.display.notify('Saved', 'ok')
-            self.logger.info('saved')
+            self.logger.info('Saved')
             return True
         except:
             return False
@@ -193,8 +197,8 @@ class App(QApplication):
         return i
 
     def open_ssh_window(self, item: QListWidgetItem):
-        self.logger.info('Open ssh window for ' + item.text())
         connection = self.get_data_by_item(item)
+        self.logger.info('Open ssh window for ' + connection['uuid'])
         command = self.rootPath + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + connection['password'] + ' ' + self.config['sshTimeout']
         os.system("xterm -e 'bash -c \""+command+";\"'")
 
@@ -214,9 +218,17 @@ class App(QApplication):
         if not os.path.isfile(self.configPath):
             self.display.change_password_ui(True)
             try:
-                self.config = {"autoSave": "True", "sshTimeout": "10", "entries": []}
-                encrypted = self.fernet.encrypt(b'{"autoSave": "True", "sshTimeout": "10", "entries": []}')
+                self.config = {
+                    "autoSave": "True",
+                    "sshTimeout": "10",
+                    "uiTheme": "Dark",
+                    "entries": []
+                }
+                encrypted = self.fernet.encrypt(
+                    b'{"autoSave": "True", "sshTimeout": "10", "uiTheme": "Dark", "entries": []}'
+                )
             except:
+                self.logger.crit('Failed to encrypt str ' + str(self.config))
                 exit(1)
             with open(self.configPath, "wb") as f:
                 f.write(encrypted)
