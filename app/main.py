@@ -29,35 +29,37 @@ class App(QApplication):
 
     def __init__(self, sys_argv):
         super(App, self).__init__(sys_argv)
-        self.programName = 'NaN named'
-        self.programVersion = "Alpha 0.1.0"
-        self.defaultPalette = QtGui.QGuiApplication.palette()
-        self.rootPath = os.path.dirname(os.path.realpath(__file__))
-        self.logPath = '/var/log/sshmanager.log'
-        self.configPath = os.environ.get('HOME')+'/.config/sshmanager/user.json'
-        self.currentSelected = None
-        self.display = Display.Instance({'app': self})
-        self.logger = Logger.Instance()
-        self.logger.config(self.logPath)
+        self.program_name = 'Encryptzia'
+        self.version = "0.1.0"
+        self.default_palette = QtGui.QGuiApplication.palette()
+        self.root_path = os.path.dirname(os.path.realpath(__file__))
+        self.log_path = '/var/log/sshmanager.log'
+        self.config_path = os.environ.get('HOME')+'/.config/sshmanager/user.json'
+        self.current_selected = None
+        self.display = Display.instance({'app': self})
+        self.logger = Logger.instance()
+        self.logger.config(self.log_path)
         self.logger.debug('Os : ' + sys.platform)
         self.logger.debug('Python version ' + str(sys.version_info.major)
             + '.' + str(sys.version_info.micro) + '.' + str(sys.version_info.minor)
         )
-        self.logger.info(self.programName + ' v.' + self.programVersion)
+        self.logger.info(self.program_name + ' ' + self.version)
 
     def run(self) -> QWidget:
-        firstSet = self.check_config()
-        if firstSet:
+        first_set = self.check_config()
+        if first_set:
             self.load_connection({}, True)
         else:
             self.display.ask_password_ui()
         self.set_style(self.config['uiTheme'])
         return self.display.main_ui()
 
-    def set_style(self, theme) -> QtGui.QPalette:
+    def set_style(self, theme: str) -> QtGui.QPalette:
         self.setStyle("Fusion")
-        palette = QtGui.QPalette()
+        with open(self.root_path + '/assets/style.css','r') as style_sheel:
+            self.setStyleSheet(style_sheel.read())
         if theme == 'Dark':
+            palette = QtGui.QPalette()
             palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
             palette.setColor(QtGui.QPalette.WindowText, Qt.white)
             palette.setColor(QtGui.QPalette.Base, QtGui.QColor(35, 35, 35))
@@ -72,7 +74,7 @@ class App(QApplication):
             palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
             palette.setColor(QtGui.QPalette.HighlightedText, Qt.black)
         else:
-            palette = self.defaultPalette
+            palette = self.default_palette
         self.config['uiTheme'] = theme
         self.logger.info('Set palette ' + theme)
         if self.config['autoSave'] == "True":
@@ -102,7 +104,7 @@ class App(QApplication):
         """
         try:
             encrypted = self.fernet.encrypt((json.dumps(self.config)).encode("utf-8"))
-            with open(self.configPath, "wb") as f:
+            with open(self.config_path, "wb") as f:
                     f.write(encrypted)
             if notify:
                 self.display.notify('Saved', 'ok')
@@ -111,20 +113,20 @@ class App(QApplication):
         except:
             return False
 
-    def load_connection(self, params: dict, firstSet=False) -> bool:
-        if not firstSet:
+    def load_connection(self, params: dict, first_set=False) -> bool:
+        if not first_set:
             passwd = (params.get('field')).text()
             key = self.gen_one_time_key(passwd)
             self.fernet = Fernet(key)
         try:
-            with open(self.configPath, "rb") as f:
+            with open(self.config_path, "rb") as f:
                 data = f.read()
             self.config = json.loads(self.fernet.decrypt(data))
             self.logger.info('Unlocked vault')
         except InvalidToken:
             self.logger.info('Unlocked vault failed')
             exit(0)
-        if not firstSet:
+        if not first_set:
             returned = (params.get('ui')).close()
         else:
             returned = True
@@ -175,18 +177,15 @@ class App(QApplication):
     def delete_config_process(self, action) -> int:
         if action == QMessageBox.Yes:
             shutil.rmtree(os.environ.get('HOME') + '/.config/sshmanager')
-            self.config = None
-            self.create_config()
-            if self.config['autoSave'] == "True":
-                self.save()
-            return True
+            self.logger.info('Removed $HOME/.config/sshmanager')
+            exit(0)
         else:
             return False
 
     def define_current_item(self, item: QListWidgetItem) -> QListWidgetItem:
-        self.currentSelected = item
+        self.current_selected = item
         self.logger.info('Current item : ' + item.data(999))
-        return self.currentSelected
+        return self.current_selected
 
     def get_item_config_position(self, uuid: str) -> int:
         i=0
@@ -199,7 +198,7 @@ class App(QApplication):
     def open_ssh_window(self, item: QListWidgetItem):
         connection = self.get_data_by_item(item)
         self.logger.info('Open ssh window for ' + connection['uuid'])
-        command = self.rootPath + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + connection['password'] + ' ' + self.config['sshTimeout']
+        command = self.root_path + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + connection['password'] + ' ' + self.config['sshTimeout']
         os.system("xterm -e 'bash -c \""+command+";\"'")
 
     def get_data_by_item(self, item: QListWidgetItem) -> dict:
@@ -211,11 +210,11 @@ class App(QApplication):
 
     def create_config(self) -> bool:
         created = False
-        if not os.path.exists(os.path.dirname(self.configPath)):
-            self.logger.info('Creating ' + str(os.path.dirname(self.configPath)))
-            os.makedirs(os.path.dirname(self.configPath))
+        if not os.path.exists(os.path.dirname(self.config_path)):
+            self.logger.info('Creating ' + str(os.path.dirname(self.config_path)))
+            os.makedirs(os.path.dirname(self.config_path))
             created = True
-        if not os.path.isfile(self.configPath):
+        if not os.path.isfile(self.config_path):
             self.display.change_password_ui(True)
             try:
                 self.config = {
@@ -230,10 +229,10 @@ class App(QApplication):
             except:
                 self.logger.crit('Failed to encrypt str ' + str(self.config))
                 exit(1)
-            with open(self.configPath, "wb") as f:
+            with open(self.config_path, "wb") as f:
                 f.write(encrypted)
             created = True
-            self.logger.info('Creating ' + self.configPath)
+            self.logger.info('Creating ' + self.config_path)
         return created
 
     def set_password(self, params: dict):
@@ -255,11 +254,11 @@ class App(QApplication):
         self.logger.info(
             'AutoSave from ' + str(actual) + ' to ' + str(self.config['autoSave'])
         )
-        self.save()
+        self.save(False)
         return self.config['autoSave']
 
 if __name__ == '__main__':
     app = App(sys.argv)
-    app.setWindowIcon(QtGui.QIcon(app.rootPath + '/assets/imgs/icon.png'))
+    app.setWindowIcon(QtGui.QIcon(app.root_path + '/assets/imgs/icon.png'))
     app.run()
     sys.exit(app.exec_())
