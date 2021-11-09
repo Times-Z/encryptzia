@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+import traceback
 from datetime import datetime
+
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import (QAction, QCheckBox, QDialog, QFormLayout,
-                             QGridLayout, QHBoxLayout, QLabel, QLayout, QLineEdit, QListWidget,
-                             QListWidgetItem, QMenuBar, QMessageBox,
-                             QPushButton, QRadioButton, QSpacerItem, QVBoxLayout, QWidget)
+                             QGridLayout, QHBoxLayout, QLabel, QLayout,
+                             QLineEdit, QListWidget, QListWidgetItem, QMenuBar,
+                             QMessageBox, QPushButton, QRadioButton,
+                             QSpacerItem, QVBoxLayout, QWidget)
 
 from .Singleton import Singleton
 
@@ -293,10 +296,10 @@ class Display():
         self.app.logger.info('Build settings ui')
         return window.exec_()
 
-    def change_password_ui(self, firstSet=False) -> QDialog:
+    def change_password_ui(self, first_set=False) -> QDialog:
         window = QDialog()
         layout = QGridLayout()
-        if firstSet:
+        if first_set:
             title = 'Create password'
         else:
             title = 'Set new password'
@@ -354,7 +357,8 @@ class Display():
                     item.setData(999, entrie['uuid'])
                     item.setToolTip('IP : '+ entrie['ip'])
                     self.connection_list.addItem(item)
-        except:
+        except Exception:
+            self.app.logger.crit(traceback.format_exc())
             exit(1)
         self.connection_list.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
         self.app.logger.info('Refresh connection list')

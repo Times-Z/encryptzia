@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import datetime
-import os
-import sys
 
 from .Singleton import Singleton
 
@@ -17,35 +15,35 @@ class Logger():
     """
     
     def __init__(self):
-        self.INFO = "[INFO]"
-        self.WARN = "[WARN]"
-        self.CRIT = "[CRITICAL]"
-        self.DEBUG = "[DEBUG]"
+        self.INFORMATION = "[INFO]"
+        self.WARNING = "[WARN]"
+        self.CRITICAL = "[CRITICAL]"
+        self.DEBUGGER = "[DEBUG]"
 
     def config(self, filename='app.log', level=None):
         if level is None:
-            level = self.INFO
+            level = self.INFORMATION
         self.filename = filename
-        self.defaultLevel = level
+        self.default_level = level
         open(self.filename, 'w').close()
 
     def info(self, log):
-        self.defaultLevel = self.INFO
-        self.__writeInFile(log)
+        self.default_level = self.INFORMATION
+        self.__write_in_file(log)
 
     def warn(self, log):
-        self.defaultLevel = self.WARN
-        self.__writeInFile(log)
+        self.default_level = self.WARNING
+        self.__write_in_file(log)
 
     def debug(self, log):
-        self.defaultLevel = self.DEBUG
-        self.__writeInFile(log)
+        self.default_level = self.DEBUGGER
+        self.__write_in_file(log)
 
     def crit(self, log):
-        self.defaultLevel = self.CRIT
-        self.__writeInFile(log)
+        self.default_level = self.CRITICAL
+        self.__write_in_file(log)
 
-    def __writeInFile(self, log):
+    def __write_in_file(self, log):
         f = open(self.filename, 'a')
-        f.write(str(datetime.datetime.now().strftime('%H:%M:%S')) + ' ' + self.defaultLevel + ' ' + log + '\n')
+        f.write(str(datetime.datetime.now().strftime('%H:%M:%S')) + ' ' + self.default_level + ' ' + log + '\n')
         f.close()

@@ -6,15 +6,15 @@ import json
 import os
 import shutil
 import sys
+import traceback
 import uuid
-
-from PyQt5.QtCore import Qt
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from PyQt5 import QtGui
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QListWidgetItem,
                              QMessageBox, QRadioButton, QWidget)
 
@@ -110,7 +110,8 @@ class App(QApplication):
                 self.display.notify('Saved', 'ok')
             self.logger.info('Saved')
             return True
-        except:
+        except Exception:
+            self.logger.crit(traceback.format_exc())
             return False
 
     def load_connection(self, params: dict, first_set=False) -> bool:
@@ -226,8 +227,8 @@ class App(QApplication):
                 encrypted = self.fernet.encrypt(
                     b'{"autoSave": "True", "sshTimeout": "10", "uiTheme": "Dark", "entries": []}'
                 )
-            except:
-                self.logger.crit('Failed to encrypt str ' + str(self.config))
+            except Exception:
+                self.logger.crit(traceback.format_exc)
                 exit(1)
             with open(self.config_path, "wb") as f:
                 f.write(encrypted)
