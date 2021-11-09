@@ -56,8 +56,6 @@ class App(QApplication):
 
     def set_style(self, theme: str) -> QtGui.QPalette:
         self.setStyle("Fusion")
-        # with open(self.root_path + '/assets/style.css','r') as style_sheel:
-        #     self.setStyleSheet(style_sheel.read())
         if theme == 'Dark':
             palette = QtGui.QPalette()
             palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
