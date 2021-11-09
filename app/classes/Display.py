@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import (QAction, QCheckBox, QDial, QDialog, QFormLayout,
-                             QGridLayout, QLineEdit, QListWidget,
+from PyQt5.QtWidgets import (QAction, QCheckBox, QDialog, QFormLayout,
+                             QGridLayout, QLabel, QLineEdit, QListWidget,
                              QListWidgetItem, QMenuBar, QMessageBox,
                              QPushButton, QWidget)
 
@@ -43,22 +43,30 @@ class Display():
         self.mainWindow = QWidget()
         with open(self.App.rootPath + '/assets/style.css','r') as styleSheet:
             self.mainWindow.setStyleSheet(styleSheet.read())
-        self.mainWindow.setWindowTitle("SSH Manager")
+        self.mainWindow.setWindowTitle(
+            self.App.programName + ' - ' + self.App.programVersion
+        )
         menuBar = QMenuBar(self.mainWindow)
         fileMenu = menuBar.addMenu('File')
         editMenu = menuBar.addMenu('Edition')
         layout = QGridLayout()
         self.connectionList = QListWidget()
         self.refresh_connection_list()
+        self.connectionList.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
         self.connectionList.itemClicked.connect(self.App.define_current_item)
         self.connectionList.itemDoubleClicked.connect(self.App.open_ssh_window)
 
+        label = QLabel('Shortcut')
+        label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
         addButton = QPushButton('Add ssh connection')
-        deleteButton = QPushButton('Delete ssh connection')
+        editButton = QPushButton('Edit selected connection')
+        deleteButton = QPushButton('Delete selected connection')
 
         layout.addWidget(menuBar)
         layout.addWidget(self.connectionList)
+        layout.addWidget(label)
         layout.addWidget(addButton)
+        layout.addWidget(editButton)
         layout.addWidget(deleteButton)
 
         saveAction = QAction('Save', self.App)
@@ -68,7 +76,7 @@ class Display():
         editAction = QAction('Edit selected connection', self.App)
         deleteAction = QAction('Delete selected connection', self.App)
 
-        saveAction.triggered.connect(self.App.save)
+        saveAction.triggered.connect(lambda: self.App.save(True))
         fileMenu.addAction(saveAction)
         exitAction.triggered.connect(QtCore.QCoreApplication.quit)
         fileMenu.addAction(exitAction)
@@ -86,7 +94,9 @@ class Display():
         self.mainWindow.setLayout(layout)
 
         addButton.clicked.connect(self.add_connection_ui)
+        editButton.clicked.connect(self.edit_connection_ui)
         deleteButton.clicked.connect(self.delete_connection_ui)
+
         self.mainWindow.show()
         self.mainWindow.move(0,0)
         self.App.logger.info('Build main ui')
@@ -133,25 +143,34 @@ class Display():
     def edit_connection_ui(self) -> QDialog:
         if self.App.currentSelected:
             window = QDialog()
-            window.setWindowTitle('New ssh connection')
             data = self.App.get_data_by_item(self.App.currentSelected)
+            window.setWindowTitle('Edit ' + data['name'])
             layout = QFormLayout()
+
             nameField = QLineEdit(data['name'])
             usernameFied = QLineEdit(data['username'])
             ipField = QLineEdit(data['ip'])
             portField = QLineEdit(data['port'])
             passwordField = QLineEdit(data['password'])
-            addBtn = QPushButton('edit')
+            showPasswordBtn = QPushButton('Show password')
+            addBtn = QPushButton('Edit')
+
+            passwordField.setEchoMode(QLineEdit.Password)
+            showPasswordBtn.clicked.connect(
+                lambda: self.toogle_echo_password(passwordField, 2000)
+            )
 
             layout.addWidget(nameField)
             layout.addWidget(usernameFied)
             layout.addWidget(ipField)
             layout.addWidget(portField)
             layout.addWidget(passwordField)
+            layout.addWidget(showPasswordBtn)
             layout.addWidget(addBtn)
 
             addBtn.clicked.connect(lambda: self.App.edit_connection_process({
                     "ui": window,
+                    "uuid": data['uuid'],
                     "name": nameField,
                     "username": usernameFied,
                     "ip": ipField,
@@ -207,6 +226,16 @@ class Display():
 
         layout = QGridLayout()
 
+        themeSelector = QListWidget()
+        themeSelector.addItems([
+            'Dark',
+            'Light'
+        ])
+        themeSelector.setStyleSheet("""
+            QListWidget {
+                max-height: 30px
+            }
+        """)
         autoSaveCheckbox = QCheckBox('Auto save')
         deleteConfigBtn = QPushButton('Delete all configuration')
         changePasswordBtn = QPushButton('Change password')
@@ -218,9 +247,11 @@ class Display():
         )
         deleteConfigBtn.clicked.connect(self.delete_config_ui)
         changePasswordBtn.clicked.connect(self.change_password_ui)
+        themeSelector.itemDoubleClicked.connect(self.App.set_style)
 
         window.setLayout(layout)
 
+        layout.addWidget(themeSelector)
         layout.addWidget(autoSaveCheckbox)
         layout.addWidget(deleteConfigBtn)
         layout.addWidget(changePasswordBtn)
@@ -228,23 +259,39 @@ class Display():
         self.App.logger.info('Build settings ui')
         return window.exec_()
 
-    def change_password_ui(self) -> QDialog:
+    def change_password_ui(self, firstSet=False) -> QDialog:
         window = QDialog()
         layout = QGridLayout()
-        window.setWindowTitle('Set password')
+        if firstSet:
+            title = 'Create password'
+        else:
+            title = 'Set new password'
+        window.setWindowTitle(title)
 
-        password = QLineEdit()
-        repassword = QLineEdit()
-        password.setEchoMode(QLineEdit.Password)
-        repassword.setEchoMode(QLineEdit.Password)
+        passwordField = QLineEdit()
+        repasswordField = QLineEdit()
+        passwordField.setPlaceholderText('Your password')
+        repasswordField.setPlaceholderText('Retype password')
+        validateBtn = QPushButton('Validate')
+        passwordField.setEchoMode(QLineEdit.Password)
+        repasswordField.setEchoMode(QLineEdit.Password)
 
-        
+        passwordField.textChanged.connect(lambda: self.toogle_echo_password(passwordField))
+        repasswordField.textChanged.connect(lambda: self.toogle_echo_password(repasswordField))
+        validateBtn.clicked.connect(
+            lambda: self.App.set_password({
+                "ui": window,
+                "password": passwordField,
+                "repassword": repasswordField
+            })
+        )
 
-        layout.addWidget(password)
-        layout.addWidget(repassword)
+        layout.addWidget(passwordField)
+        layout.addWidget(repasswordField)
+        layout.addWidget(validateBtn)
 
         window.setLayout(layout)
-
+        self.App.logger.info('Build set/change password ui')
         return window.exec_()
 
     def about_ui(self) -> QMessageBox:
@@ -261,13 +308,31 @@ class Display():
 
     def refresh_connection_list(self) -> None:
         self.connectionList.clear()
-        if self.App.config is not None:
-            for entrie in self.App.config['entries']:
-                item = QListWidgetItem(entrie['name'])
-                item.setToolTip('IP : '+ entrie['ip'])
-                self.connectionList.addItem(item)
+        try:
+            if self.App.config is not None:
+                for entrie in self.App.config['entries']:
+                    item = QListWidgetItem(entrie['name'])
+                    item.setData(999, entrie['uuid'])
+                    item.setToolTip('IP : '+ entrie['ip'])
+                    self.connectionList.addItem(item)
+        except:
+            exit(1)
+        self.connectionList.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
         self.App.logger.info('Refresh connection list')
 
-    def toogle_echo_password(self, item):
+    def toogle_echo_password(self, item: QLineEdit, msec=500) -> QtCore.QTimer:
         item.setEchoMode(QLineEdit.Normal)
-        QtCore.QTimer.singleShot(500, lambda: item.setEchoMode(QLineEdit.Password))
+        return QtCore.QTimer.singleShot(msec, lambda: item.setEchoMode(QLineEdit.Password))
+
+    def notify(self, text: str, type: str) -> QMessageBox:
+        icons = {
+            'error': QMessageBox.Critical,
+            'ok': QMessageBox.Information
+        }
+        window = QMessageBox()
+        window.setWindowTitle('Information')
+        window.setText(text)
+        window.setIcon(icons.get(type))
+        QtCore.QTimer.singleShot(1000, lambda: window.close())
+        self.App.logger.info('Notify ' + type)
+        return window.exec_()

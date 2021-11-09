@@ -6,6 +6,9 @@ import json
 import os
 import shutil
 import sys
+import uuid
+
+from PyQt5.QtCore import Qt
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
@@ -26,8 +29,8 @@ class App(QApplication):
 
     def __init__(self, sys_argv):
         super(App, self).__init__(sys_argv)
-        self.programName = 'Maxi Manager'
-        self.programVersion = "0.1.0"
+        self.programName = 'NaN named'
+        self.programVersion = "Alpha 0.1.0"
         self.rootPath = os.path.dirname(os.path.realpath(__file__))
         self.logPath = '/var/log/sshmanager.log'
         self.configPath = os.environ.get('HOME')+'/.config/sshmanager/user.json'
@@ -39,14 +42,41 @@ class App(QApplication):
         self.logger.debug('Python version ' + str(sys.version_info.major)
             + '.' + str(sys.version_info.micro) + '.' + str(sys.version_info.minor)
         )
-        self.logger.info('Starting app')
+        self.logger.info(self.programName + ' v.' + self.programVersion)
 
     def run(self) -> QWidget:
-        """
-            Build main widget
-        """
-        self.display.ask_password_ui()
+        firstSet = self.check_config()
+        if firstSet:
+            self.load_connection({}, True)
+        else:
+            self.display.ask_password_ui()
         return self.display.main_ui()
+
+    def set_style(self, item) -> QtGui.QPalette:
+        self.setStyle("Fusion")
+        palette = QtGui.QPalette()
+        if item.text() == 'Dark':
+            palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
+            palette.setColor(QtGui.QPalette.WindowText, Qt.white)
+            palette.setColor(QtGui.QPalette.Base, QtGui.QColor(25, 25, 25))
+            palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
+            palette.setColor(QtGui.QPalette.ToolTipBase, Qt.black)
+            palette.setColor(QtGui.QPalette.ToolTipText, Qt.white)
+            palette.setColor(QtGui.QPalette.Text, Qt.white)
+            palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
+            palette.setColor(QtGui.QPalette.ButtonText, Qt.white)
+            palette.setColor(QtGui.QPalette.BrightText, Qt.red)
+            palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+            palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
+            palette.setColor(QtGui.QPalette.HighlightedText, Qt.black)
+        else:
+            self.setStyle("")
+        self.logger.info('Set palette ' + item.text())
+        return self.setPalette(palette)
+
+    def check_config(self) -> bool:
+        self.set_style(QListWidgetItem('Dark'))
+        return self.create_config()
 
     def gen_one_time_key(self, passwd: str) -> bytes:
         self.logger.info('Gen one time key')
@@ -62,7 +92,7 @@ class App(QApplication):
         key = base64.urlsafe_b64encode(kdf.derive(password))
         return key
 
-    def save(self) -> bool:
+    def save(self, notify=True) -> bool:
         """
             save configuration
         """
@@ -70,27 +100,35 @@ class App(QApplication):
             encrypted = self.fernet.encrypt((json.dumps(self.config)).encode("utf-8"))
             with open(self.configPath, "wb") as f:
                     f.write(encrypted)
+            if notify:
+                self.display.notify('Saved', 'ok')
             self.logger.info('saved')
             return True
         except:
             return False
 
-    def load_connection(self, params: dict) -> bool:
-        passwd = (params.get('field')).text()
-        key = self.gen_one_time_key(passwd)
-        self.fernet = Fernet(key)
-        self.create_config()
+    def load_connection(self, params: dict, firstSet=False) -> bool:
+        if not firstSet:
+            passwd = (params.get('field')).text()
+            key = self.gen_one_time_key(passwd)
+            self.fernet = Fernet(key)
         try:
             with open(self.configPath, "rb") as f:
                 data = f.read()
             self.config = json.loads(self.fernet.decrypt(data))
-            self.logger.info('Decrypt data ok')
+            self.logger.info('Unlocked vault')
         except InvalidToken:
+            self.logger.info('Unlocked vault failed')
             exit(0)
-        return (params.get('ui')).close()
+        if not firstSet:
+            returned = (params.get('ui')).close()
+        else:
+            returned = True
+        return returned
 
     def add_connection_process(self, params: dict) -> bool:
         data = {
+            "uuid": str(uuid.uuid4()),
             "name": params.get('name').text(),
             "username": params.get('username').text(),
             "ip": params.get('ip').text(),
@@ -104,16 +142,24 @@ class App(QApplication):
         return (params.get('ui')).close()
 
     def edit_connection_process(self, params: dict) -> bool:
-        self.logger.debug(str(params))
+        data = {
+            "uuid": params.get('uuid'),
+            "name": params.get('name').text(),
+            "username": params.get('username').text(),
+            "ip": params.get('ip').text(),
+            "port": (params.get('port').text()) if (params.get('port').text()) != "" else "22",
+            "password": params.get('password').text()
+        }
+        i = self.get_item_config_position(params.get('uuid'))
+        self.config['entries'][i] = data
+        if self.config['autoSave'] == "True":
+            self.save()
+        self.display.refresh_connection_list()
         return (params.get('ui')).close()
 
     def delete_connection_process(self, action: int, item: QListWidgetItem) -> bool:
         if action == QMessageBox.Yes:
-            i=0
-            for entrie in self.config['entries']:
-                if entrie['name'] == item.text():
-                    break
-                i+=1
+            i = self.get_item_config_position(item.data(999))
             del self.config['entries'][i]
             self.logger.info('Deleted entrie number ' + str(i))
             if self.config['autoSave'] == "True":
@@ -135,31 +181,58 @@ class App(QApplication):
 
     def define_current_item(self, item: QListWidgetItem) -> QListWidgetItem:
         self.currentSelected = item
-        self.logger.info('Current item : ' + item.text())
+        self.logger.info('Current item : ' + item.data(999))
         return self.currentSelected
-    
+
+    def get_item_config_position(self, uuid: str) -> int:
+        i=0
+        for entrie in self.config['entries']:
+            if entrie['uuid'] == uuid:
+                break
+            i+=1
+        return i
+
     def open_ssh_window(self, item: QListWidgetItem):
         self.logger.info('Open ssh window for ' + item.text())
         connection = self.get_data_by_item(item)
-        command = self.rootPath + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + connection['password']
+        command = self.rootPath + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + connection['password'] + ' ' + self.config['sshTimeout']
         os.system("xterm -e 'bash -c \""+command+";\"'")
 
     def get_data_by_item(self, item: QListWidgetItem) -> dict:
         for entrie in self.config['entries']:
-            if entrie['name'] == item.text():
+            if entrie['uuid'] == item.data(999):
                 data = entrie
                 break
         return data
 
     def create_config(self) -> bool:
+        created = False
         if not os.path.exists(os.path.dirname(self.configPath)):
-            self.logger.info('Creating ' + self.configPath)
+            self.logger.info('Creating ' + str(os.path.dirname(self.configPath)))
             os.makedirs(os.path.dirname(self.configPath))
+            created = True
+        if not os.path.isfile(self.configPath):
+            self.display.change_password_ui(True)
+            try:
+                self.config = {"autoSave": "True", "sshTimeout": "10", "entries": []}
+                encrypted = self.fernet.encrypt(b'{"autoSave": "True", "sshTimeout": "10", "entries": []}')
+            except:
+                exit(1)
             with open(self.configPath, "wb") as f:
-                self.config = {"autoSave": "True", "entries": []}
-                encrypted = self.fernet.encrypt(b'{"autoSave": "True", "entries": []}')
                 f.write(encrypted)
-        return True
+            created = True
+            self.logger.info('Creating ' + self.configPath)
+        return created
+
+    def set_password(self, params: dict):
+        if (params.get('password')).text() == (params.get('repassword')).text():
+            key = self.gen_one_time_key(params.get('password').text())
+            self.fernet = Fernet(key)
+            self.save(False)
+            self.display.notify('Password changed', 'ok')
+            return (params.get('ui')).close()
+        else:
+            self.display.notify('Both password not matched', 'error')
 
     def toogle_auto_save(self, checkbox: QCheckBox) -> bool:
         actual = self.config['autoSave']
