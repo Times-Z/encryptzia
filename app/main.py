@@ -240,8 +240,11 @@ class App(QApplication):
         if (params.get('password')).text() == (params.get('repassword')).text():
             key = self.gen_one_time_key(params.get('password').text())
             self.fernet = Fernet(key)
-            self.save(False)
-            self.display.notify('Password changed', 'ok')
+            if hasattr(self, 'config'):
+                self.save(False)
+                self.display.notify('Password changed', 'ok')
+            else:
+                self.display.notify('Password set', 'ok')
             return (params.get('ui')).close()
         else:
             self.display.notify('Both password not matched', 'error')
