@@ -4,8 +4,8 @@ services:
     image: registry.jonas.domains/timesz/ssh-manager:stable
     user: root
     volumes:
-      - ./app:/var/lib/sshmanager:rw
-      - ./app/app.log:/var/log/sshmanager.log:rw
+      - ./app:/var/lib/encryptzia:rw
+      - ./app/app.log:/var/log/encryptzia.log:rw
       - /tmp/.X11-unix:/tmp/.X11-unix
     ports:
       - 5678:5678

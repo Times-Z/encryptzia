@@ -18,12 +18,12 @@ RUN echo 'qtuser:root' | chpasswd
 RUN mkdir -p /run/user/1000 && chmod 700 /run/user/1000 && chown qtuser /run/user/1000
 RUN mkdir -p /run/user/0 && chmod 700 /run/user/0
 
-COPY ./app /var/lib/sshmanager
-COPY ./build/launcher.sh /usr/bin/sshmanager
-RUN touch /var/log/sshmanager.log && chmod 777 /var/log/sshmanager.log && chmod +x /usr/bin/sshmanager
-WORKDIR /var/lib/sshmanager
+COPY ./app /var/lib/encryptzia
+COPY ./build/launcher.sh /usr/bin/encryptzia
+RUN touch /var/log/encryptzia.log && chmod 777 /var/log/encryptzia.log && chmod +x /usr/bin/encryptzia
+WORKDIR /var/lib/encryptzia
 
 EXPOSE 8080
 EXPOSE 5678
 
-CMD [ "sshmanager" ]
+CMD [ "encryptzia" ]

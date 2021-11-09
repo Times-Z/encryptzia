@@ -12,15 +12,15 @@ build-debian:
     script:
       - apt-get update -y && apt-get install curl alien -y
       - |-
-        mkdir -p /tmp/app/var/lib/sshmanager
-        cp -R ./app/* /tmp/app/var/lib/sshmanager
+        mkdir -p /tmp/app/var/lib/encryptzia
+        cp -R ./app/* /tmp/app/var/lib/encryptzia
         mkdir -p /tmp/app/usr/local/bin
-        cp ./build/launcher.sh /tmp/app/usr/local/bin/sshmanager
+        cp ./build/launcher.sh /tmp/app/usr/local/bin/encryptzia
         cp -R ./build/DEBIAN /tmp/app
         chmod 755 -R /tmp/app
-      - dpkg-deb -b /tmp/app /tmp/sshmanager.deb
+      - dpkg-deb -b /tmp/app /tmp/encryptzia.deb
       - |-
-        [ -f /tmp/sshmanager.deb ] && echo "Build completed" || exit 1
+        [ -f /tmp/encryptzia.deb ] && echo "Build completed" || exit 1
 
 build-docker-dev:
     stage: Build
@@ -51,14 +51,14 @@ install-debian:
     script:
       - apt-get update -y && apt-get install curl alien -y
       - |-
-        mkdir -p /tmp/app/var/lib/sshmanager
-        cp -R ./app/* /tmp/app/var/lib/sshmanager
+        mkdir -p /tmp/app/var/lib/encryptzia
+        cp -R ./app/* /tmp/app/var/lib/encryptzia
         mkdir -p /tmp/app/usr/local/bin
-        cp ./build/launcher.sh /tmp/app/usr/local/bin/sshmanager
+        cp ./build/launcher.sh /tmp/app/usr/local/bin/encryptzia
         cp -R ./build/DEBIAN /tmp/app
         chmod 755 -R /tmp/app
-      - dpkg-deb -b /tmp/app /tmp/sshmanager.deb
-      - apt install /tmp/sshmanager.deb -y
+      - dpkg-deb -b /tmp/app /tmp/encryptzia.deb
+      - apt install /tmp/encryptzia.deb -y
     needs: ["build-debian"]
 
 # install-rhel:

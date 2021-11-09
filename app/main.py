@@ -33,8 +33,8 @@ class App(QApplication):
         self.version = "0.1.0"
         self.default_palette = QtGui.QGuiApplication.palette()
         self.root_path = os.path.dirname(os.path.realpath(__file__))
-        self.log_path = '/var/log/sshmanager.log'
-        self.config_path = os.environ.get('HOME')+'/.config/sshmanager/user.json'
+        self.log_path = '/var/log/encryptzia.log'
+        self.config_path = os.environ.get('HOME')+'/.config/encryptzia/user.json'
         self.current_selected = None
         self.display = Display.instance({'app': self})
         self.logger = Logger.instance()
@@ -178,8 +178,8 @@ class App(QApplication):
 
     def delete_config_process(self, action) -> int:
         if action == QMessageBox.Yes:
-            shutil.rmtree(os.environ.get('HOME') + '/.config/sshmanager')
-            self.logger.info('Removed $HOME/.config/sshmanager')
+            shutil.rmtree(os.environ.get('HOME') + '/.config/encryptzia')
+            self.logger.info('Removed $HOME/.config/encryptzia')
             exit(0)
         else:
             return False
@@ -222,11 +222,11 @@ class App(QApplication):
                 self.config = {
                     "autoSave": "True",
                     "sshTimeout": "10",
-                    "uiTheme": "Dark",
+                    "uiTheme": "Light",
                     "entries": []
                 }
                 encrypted = self.fernet.encrypt(
-                    b'{"autoSave": "True", "sshTimeout": "10", "uiTheme": "Dark", "entries": []}'
+                    b'{"autoSave": "True", "sshTimeout": "10", "uiTheme": "Light", "entries": []}'
                 )
             except Exception:
                 log = traceback.format_exc()
