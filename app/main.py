@@ -83,9 +83,8 @@ class App(QApplication):
         return self.create_config()
 
     def gen_one_time_key(self, passwd: str) -> bytes:
-        self.logger.info('Gen one time key')
         password = passwd.encode()
-        salt = b'8qRA9Y8Q6z'
+        salt = bytes(str(uuid.getnode()).encode("utf-8"))
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
@@ -94,6 +93,7 @@ class App(QApplication):
             backend=default_backend()
         )
         key = base64.urlsafe_b64encode(kdf.derive(password))
+        self.logger.info('Gen one time key')
         return key
 
     def save(self, notify=True) -> bool:
