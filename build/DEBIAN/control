@@ -3,6 +3,6 @@ Version: 0.0.1
 Section: developement
 Priority: optional
 Architecture: amd64
-Depends: bash, python3, python3-distutils, python3-pip, python3-pyqt5, freeglut3-dev, xterm, ssh, expect
+Depends: python3, python3-distutils, python3-pip, python3-pyqt5, freeglut3-dev, xterm, ssh, expect
 Maintainer: Times'Z <jonas.bertin49@gmail.com>
 Description: A secure ssh connection manager build in python
