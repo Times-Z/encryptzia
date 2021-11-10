@@ -229,6 +229,7 @@ class App(QApplication):
             except Exception:
                 log = traceback.format_exc()
                 self.logger.crit(log)
+                self.logger.crit('No password specified, exiting')
                 exit(1)
             with open(self.config_path, "wb") as f:
                 f.write(encrypted)

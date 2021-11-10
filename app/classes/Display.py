@@ -3,6 +3,7 @@ import traceback
 from datetime import datetime
 
 from PyQt5 import QtCore
+from PyQt5.QtGui import QRegExpValidator
 from PyQt5.QtWidgets import (QAction, QCheckBox, QDialog, QFormLayout,
                              QGridLayout, QHBoxLayout, QLabel, QLayout,
                              QLineEdit, QListWidget, QListWidgetItem, QMenuBar,
@@ -20,6 +21,7 @@ class Display():
     
     def __init__(self, params):
         self.app = params.get('app')
+        self.timer_running = False
 
     def ask_password_ui(self) -> QDialog:
         window = QDialog()
@@ -133,6 +135,15 @@ class Display():
         port_field = QLineEdit('22')
         password_field = QLineEdit()
         add_btn = QPushButton('add')
+
+        self.set_regex(
+            "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+            ip_field
+        )
+        self.set_regex(
+            "^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$",
+            port_field
+        )
 
         self.add_rows(form_layout, [
             {'label': 'Common name', 'widget': name_field},
@@ -313,8 +324,9 @@ class Display():
         password_field.setEchoMode(QLineEdit.Password)
         re_password_field.setEchoMode(QLineEdit.Password)
 
-        password_field.textChanged.connect(lambda: self.toogle_echo_password(password_field))
-        re_password_field.textChanged.connect(lambda: self.toogle_echo_password(re_password_field))
+        password_field.textEdited.connect(lambda: self.toogle_echo_password(password_field, 3000))
+        re_password_field.textChanged.connect(lambda: self.toogle_echo_password(re_password_field, 3000))
+
         validate_btn.clicked.connect(
             lambda: self.app.set_password({
                 "ui": window,
@@ -364,8 +376,9 @@ class Display():
         self.connection_list.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
         self.app.logger.info('Refresh connection list')
 
-    def toogle_echo_password(self, item: QLineEdit, msec=500) -> QtCore.QTimer:
-        item.setEchoMode(QLineEdit.Normal)
+    def toogle_echo_password(self, item: QLineEdit, msec=500) -> None:
+        if item.echoMode() == QLineEdit.Password:
+            item.setEchoMode(QLineEdit.Normal)
         return QtCore.QTimer.singleShot(msec, lambda: item.setEchoMode(QLineEdit.Password))
 
     def notify(self, text: str, type: str) -> QMessageBox:
@@ -395,3 +408,9 @@ class Display():
         for action in actions:
             menu.addAction(action)
         return menu
+
+    def set_regex(self, regex: str, input: QLineEdit) -> QLineEdit:
+        reg_ex = QtCore.QRegExp(regex)
+        input_validator = QRegExpValidator(reg_ex, input)
+        input.setValidator(input_validator)
+        return input
