@@ -4,7 +4,7 @@ from datetime import datetime
 
 from PyQt5 import QtCore
 from PyQt5.QtGui import QRegExpValidator
-from PyQt5.QtWidgets import (QAction, QCheckBox, QDialog, QFormLayout,
+from PyQt5.QtWidgets import (QAction, QCheckBox, QComboBox, QDialog, QFormLayout,
                              QGridLayout, QHBoxLayout, QLabel, QLayout,
                              QLineEdit, QListWidget, QListWidgetItem, QMenuBar,
                              QMessageBox, QPushButton, QRadioButton,
@@ -98,7 +98,7 @@ class Display():
         ])
 
         edit_action.triggered.connect(lambda: self.add_edit_connection_ui('edit'))
-        delete_action.triggered.connect(self.delete_connection_ui)
+        delete_action.triggered.connect(self.delete_ui)
         self.add_actions(edit_menu, [
             edit_action,
             delete_action
@@ -115,7 +115,7 @@ class Display():
 
         add_btn.clicked.connect(lambda: self.add_edit_connection_ui())
         edit_btn.clicked.connect(lambda: self.add_edit_connection_ui('edit'))
-        delete_btn.clicked.connect(self.delete_connection_ui)
+        delete_btn.clicked.connect(self.delete_ui)
 
         self.main_window.show()
         self.main_window.move(0,0)
@@ -191,52 +191,48 @@ class Display():
         )
         return window.exec_()
 
-    def delete_connection_ui(self) -> None:
-        if self.app.current_selected is not None:
-            item = self.app.current_selected
-            window = QMessageBox()
-            window.setIcon(QMessageBox.Warning)
-            window.setWindowTitle('WARNING')
-            window.setText("""
-            <div style="color:red">Deleting {0}</div>
-            <div>Are you sure ?</div>
-            """.format(
-                item.text()
-            ))
-            window.addButton(QMessageBox.Yes)
-            window.addButton(QMessageBox.No)
-
-            self.app.logger.info('Build delete ssh warning')
-            result = window.exec_()
-            self.app.delete_connection_process(result, item)
-            self.refresh_connection_list()
-
-    def delete_config_ui(self) -> None:
+    def delete_ui(self, delete_all=False) -> None:
         window = QMessageBox()
         window.setIcon(QMessageBox.Warning)
         window.setWindowTitle('WARNING')
+        window.addButton(QMessageBox.Yes)
+        window.addButton(QMessageBox.No)
+        if not delete_all:
+            if self.app.current_selected is not None:
+                item = self.app.current_selected
+                window.setText("""
+                <div style="color:red">Deleting {0}</div>
+                <div>Are you sure ?</div>
+                """.format(
+                    item.text()
+                ))
+
+                self.app.logger.info('Build delete ssh warning ui')
+                result = window.exec_()
+                self.app.delete_connection_process(result, item)
+                return self.refresh_connection_list()
+
         window.setText("""
         <div style="color:red">Deleting all the configuration</div>
         <div>Are you sure ?</div>
         <div>{0} exit after pressing yes button</div>
         """.format(self.app.program_name))
-        window.addButton(QMessageBox.Yes)
-        window.addButton(QMessageBox.No)
-
-        self.app.logger.info('Build delete config warning')
+        self.app.logger.info('Build delete config warning ui')
         result = window.exec_()
         self.app.delete_config_process(result)
-        self.refresh_connection_list()
+        return self.refresh_connection_list()
 
     def settings_ui(self) -> QDialog:
         window = QDialog()
         window.setWindowTitle('Settings')
         window.setFixedSize(400, 400)
 
-        main_layout = QHBoxLayout()
+        main_layout = QGridLayout()
+        top_layout = QHBoxLayout()
         left_layout = QFormLayout()
         theme_layout = QFormLayout()
         right_layout = QFormLayout()
+        bottom_layout = QHBoxLayout()
 
         dark_theme = QRadioButton('Dark', window)
         light_theme = QRadioButton('Light', window)
@@ -253,7 +249,7 @@ class Display():
         auto_save_checkbox.stateChanged.connect(lambda:
         self.app.toogle_auto_save(auto_save_checkbox)
         )
-        delete_conf_btn.clicked.connect(self.delete_config_ui)
+        delete_conf_btn.clicked.connect(lambda: self.delete_ui(True))
         change_password_btn.clicked.connect(self.change_password_ui)
         dark_theme.clicked.connect(lambda: self.app.set_style(dark_theme.text()))
         light_theme.clicked.connect(lambda: self.app.set_style(light_theme.text()))
@@ -265,14 +261,25 @@ class Display():
         ])
         left_layout.addItem(QSpacerItem(100, 10))
         left_layout.addWidget(auto_save_checkbox)
-        main_layout.addLayout(left_layout)
+        top_layout.addLayout(left_layout)
 
         self.add_widgets(right_layout, [
             delete_conf_btn,
             change_password_btn
         ])
-        main_layout.addLayout(right_layout)
+        top_layout.addLayout(right_layout)
 
+        shell_choice = QComboBox()
+        shell_choice.addItems(
+            ['xterm', 'test1', 'test2']
+        )
+        shell_choice.currentIndexChanged.connect(
+            lambda: self.app.change_shell_emulator(shell_choice)
+        )
+        bottom_layout.addWidget(shell_choice)
+
+        main_layout.addLayout(top_layout, 0, 0)
+        main_layout.addLayout(bottom_layout, 1, 0, QtCore.Qt.AlignmentFlag.AlignTop)
         window.setLayout(main_layout)
         self.app.logger.info('Build settings ui')
         return window.exec_()

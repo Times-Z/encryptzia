@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (QApplication, QCheckBox, QListWidgetItem,
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QListWidgetItem,
                              QMessageBox, QRadioButton, QWidget)
 
 from classes import Display, Logger
@@ -249,6 +249,10 @@ class App(QApplication):
         )
         self.save(False)
         return self.config['autoSave']
+
+    def change_shell_emulator(self, item: QComboBox):
+        self.logger.debug(str(item.count()))
+        self.logger.debug(item.currentText())
 
 if __name__ == '__main__':
     app = App(sys.argv)
