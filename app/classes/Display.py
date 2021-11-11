@@ -97,7 +97,7 @@ class Display():
             exit_action
         ])
 
-        edit_action.triggered.connect(self.edit_connection_ui)
+        edit_action.triggered.connect(lambda: self.add_edit_connection_ui('edit'))
         delete_action.triggered.connect(self.delete_connection_ui)
         self.add_actions(edit_menu, [
             edit_action,
@@ -113,8 +113,8 @@ class Display():
 
         self.main_window.setLayout(layout)
 
-        add_btn.clicked.connect(self.add_connection_ui)
-        edit_btn.clicked.connect(self.edit_connection_ui)
+        add_btn.clicked.connect(lambda: self.add_edit_connection_ui())
+        edit_btn.clicked.connect(lambda: self.add_edit_connection_ui('edit'))
         delete_btn.clicked.connect(self.delete_connection_ui)
 
         self.main_window.show()
@@ -123,18 +123,31 @@ class Display():
 
         return self.main_window
 
-    def add_connection_ui(self) -> QDialog:
+    def add_edit_connection_ui(self, mode='add') -> QDialog:
         window = QDialog()
-        window.setWindowTitle('New ssh connection')
+        data = None
+
+        if mode == 'edit' and self.app.current_selected:
+            data = self.app.get_data_by_item(self.app.current_selected)
 
         main_layout = QVBoxLayout()
         form_layout = QFormLayout()
-        name_field = QLineEdit()
-        username_field = QLineEdit()
-        ip_field = QLineEdit()
-        port_field = QLineEdit('22')
-        password_field = QLineEdit()
-        add_btn = QPushButton('add')
+
+        name_field = QLineEdit(data['name'] if data else None)
+        username_field = QLineEdit(data['username'] if data else None)
+        ip_field = QLineEdit(data['ip'] if data else None)
+        port_field = QLineEdit(data['port'] if data else '22')
+        password_field = QLineEdit(data['password'] if data else None)
+        show_password_btn = QPushButton('show password') if mode == 'edit' else None
+        edit_add_btn = QPushButton('add' if mode == 'add' else 'edit')
+
+        password_field.setEchoMode(QLineEdit.Password)
+        password_field.textChanged.connect(lambda: self.toogle_echo_password(password_field))
+
+        if show_password_btn is not None:
+            show_password_btn.clicked.connect(
+                lambda: self.toogle_echo_password(password_field, 2000)
+            )
 
         self.set_regex(
             "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
@@ -154,10 +167,12 @@ class Display():
         ])
 
         main_layout.addLayout(form_layout)
-        main_layout.addWidget(add_btn)
+        main_layout.addWidget(show_password_btn) if mode == 'edit' else None
+        main_layout.addWidget(edit_add_btn)
 
-        add_btn.clicked.connect(lambda: self.app.add_connection_process({
+        edit_add_btn.clicked.connect(lambda: self.app.add_edit_connection_process({
                 "ui": window,
+                "uuid": data['uuid'] if data else None,
                 "name": name_field,
                 "username": username_field,
                 "ip": ip_field,
@@ -166,60 +181,15 @@ class Display():
             }))
 
         window.setLayout(main_layout)
-        self.app.logger.info('Build add ssh connection ui')
+        log_line = f'Build {mode} ssh connection ui '
+        if data is not None:
+            log_line += f'for item ' + data['uuid']
+        if mode == 'edit' and self.app.current_selected is None:
+            return window.destroy()
+        self.app.logger.info(
+            log_line
+        )
         return window.exec_()
-
-    def edit_connection_ui(self) -> QDialog:
-        if self.app.current_selected:
-            window = QDialog()
-            data = self.app.get_data_by_item(self.app.current_selected)
-            window.setWindowTitle('Edit ' + data['name'])
-            main_layout = QVBoxLayout()
-            form_layout = QFormLayout()
-
-            name_field = QLineEdit(data['name'])
-            username_field = QLineEdit(data['username'])
-            ip_field = QLineEdit(data['ip'])
-            port_field = QLineEdit(data['port'])
-            password_field = QLineEdit(data['password'])
-            show_password_btn = QPushButton('Show password')
-            add_btn = QPushButton('Edit')
-
-            password_field.setEchoMode(QLineEdit.Password)
-            show_password_btn.clicked.connect(
-                lambda: self.toogle_echo_password(password_field, 2000)
-            )
-
-            self.add_rows(form_layout, [
-                {'label': 'Common name', 'widget': name_field},
-                {'label': 'User name', 'widget': username_field},
-                {'label': 'Ip', 'widget': ip_field},
-                {'label': 'Port', 'widget': port_field},
-                {'label': 'Password', 'widget': password_field},
-            ])
-
-            main_layout.addLayout(form_layout)
-
-            self.add_widgets(main_layout, [
-                show_password_btn,
-                add_btn
-            ])
-
-            add_btn.clicked.connect(lambda: self.app.edit_connection_process({
-                    "ui": window,
-                    "uuid": data['uuid'],
-                    "name": name_field,
-                    "username": username_field,
-                    "ip": ip_field,
-                    "port": port_field,
-                    "password": password_field
-                }))
-
-            window.setLayout(main_layout)
-            self.app.logger.info(
-                'Build edit ssh connection ui for item ' + self.app.current_selected.text()
-            )
-            return window.exec_()
 
     def delete_connection_ui(self) -> None:
         if self.app.current_selected is not None:

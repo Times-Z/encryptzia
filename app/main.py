@@ -132,36 +132,24 @@ class App(QApplication):
             returned = True
         return returned
 
-    def add_connection_process(self, params: dict) -> bool:
+    def add_edit_connection_process(self, params: dict) -> bool:
         data = {
-            "uuid": str(uuid.uuid4()),
+            "uuid": params.get('uuid') if params.get('uuid') else str(uuid.uuid4()),
             "name": params.get('name').text(),
             "username": params.get('username').text(),
             "ip": params.get('ip').text(),
             "port": (params.get('port').text()) if (params.get('port').text()) != "" else "22",
             "password": params.get('password').text()
         }
-        self.config['entries'].append(data)
-        self.display.refresh_connection_list()
-        if self.config['autoSave'] == "True":
-            self.save()
-        return (params.get('ui')).close()
-
-    def edit_connection_process(self, params: dict) -> bool:
-        data = {
-            "uuid": params.get('uuid'),
-            "name": params.get('name').text(),
-            "username": params.get('username').text(),
-            "ip": params.get('ip').text(),
-            "port": (params.get('port').text()) if (params.get('port').text()) != "" else "22",
-            "password": params.get('password').text()
-        }
-        i = self.get_item_config_position(params.get('uuid'))
-        self.config['entries'][i] = data
+        if params.get('uuid'):
+            i = self.get_item_config_position(params.get('uuid'))
+            self.config['entries'][i] = data
+        else:
+            self.config['entries'].append(data)
         if self.config['autoSave'] == "True":
             self.save()
         self.display.refresh_connection_list()
-        return (params.get('ui')).close()
+        return (params.get('ui').close())
 
     def delete_connection_process(self, action: int, item: QListWidgetItem) -> bool:
         if action == QMessageBox.Yes:
