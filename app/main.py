@@ -14,9 +14,9 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from PyQt5 import QtGui
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QListWidgetItem,
-                             QMessageBox, QRadioButton, QWidget)
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QLineEdit,
+                             QListWidgetItem, QMessageBox,
+                             QWidget)
 
 from classes import Display, Logger
 
@@ -24,7 +24,9 @@ from classes import Display, Logger
 class App(QApplication):
     """
         Main class
-        - Run the main window and the manager
+        - Run the program
+        - Check and create config
+        - Do process
     """
 
     def __init__(self, sys_argv):
@@ -36,6 +38,7 @@ class App(QApplication):
         self.log_path = '/var/log/encryptzia.log'
         self.config_path = os.environ.get('HOME')+'/.config/encryptzia/user.json'
         self.current_selected = None
+        self.timer_running = False
         self.display = Display.instance({'app': self})
         self.logger = Logger.instance()
         self.logger.config(self.log_path)
@@ -51,33 +54,8 @@ class App(QApplication):
             self.load_connection({}, True)
         else:
             self.display.ask_password_ui()
-        self.set_style(self.config['uiTheme'])
+        self.display.set_style(self.config['uiTheme'])
         return self.display.main_ui()
-
-    def set_style(self, theme: str) -> QtGui.QPalette:
-        self.setStyle("Fusion")
-        if theme == 'Dark':
-            palette = QtGui.QPalette()
-            palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
-            palette.setColor(QtGui.QPalette.WindowText, Qt.white)
-            palette.setColor(QtGui.QPalette.Base, QtGui.QColor(35, 35, 35))
-            palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
-            palette.setColor(QtGui.QPalette.ToolTipBase, QtGui.QColor(25, 25, 25))
-            palette.setColor(QtGui.QPalette.ToolTipText, Qt.white)
-            palette.setColor(QtGui.QPalette.Text, Qt.white)
-            palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
-            palette.setColor(QtGui.QPalette.ButtonText, Qt.white)
-            palette.setColor(QtGui.QPalette.BrightText, Qt.red)
-            palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
-            palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
-            palette.setColor(QtGui.QPalette.HighlightedText, Qt.black)
-        else:
-            palette = self.default_palette
-        self.config['uiTheme'] = theme
-        self.logger.info('Set palette ' + theme)
-        if self.config['autoSave'] == "True":
-            self.save(False)
-        return self.setPalette(palette)
 
     def check_config(self) -> bool:
         return self.create_config()
@@ -185,9 +163,10 @@ class App(QApplication):
 
     def open_ssh_window(self, item: QListWidgetItem):
         connection = self.get_data_by_item(item)
-        self.logger.info('Open ssh window for ' + connection['uuid'])
+        self.logger.info('Open ' + self.config['shell'] + ' ssh window for ' + connection['uuid'])
         command = self.root_path + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + connection['password'] + ' ' + self.config['sshTimeout']
-        os.system("xterm -e 'bash -c \""+command+";\"'")
+        return_code = os.system(self.config['shell'] + " -e 'bash -c \""+command+";\"'")
+        self.logger.debug(str(return_code))
 
     def get_data_by_item(self, item: QListWidgetItem) -> dict:
         for entrie in self.config['entries']:
@@ -209,10 +188,11 @@ class App(QApplication):
                     "autoSave": "True",
                     "sshTimeout": "10",
                     "uiTheme": "Light",
+                    "shell": "xterm",
                     "entries": []
                 }
                 encrypted = self.fernet.encrypt(
-                    b'{"autoSave": "True", "sshTimeout": "10", "uiTheme": "Light", "entries": []}'
+                    bytes(json.dumps(self.config), encoding='utf-8')
                 )
             except Exception:
                 log = traceback.format_exc()
@@ -241,18 +221,19 @@ class App(QApplication):
     def toogle_auto_save(self, checkbox: QCheckBox) -> bool:
         actual = self.config['autoSave']
         if checkbox.isChecked():
-            self.config['autoSave'] = True
+            self.config['autoSave'] = "True"
         else:
-            self.config['autoSave'] = False
+            self.config['autoSave'] = "False"
         self.logger.info(
             'AutoSave from ' + str(actual) + ' to ' + str(self.config['autoSave'])
         )
         self.save(False)
         return self.config['autoSave']
 
-    def change_shell_emulator(self, item: QComboBox):
-        self.logger.debug(str(item.count()))
-        self.logger.debug(item.currentText())
+    def change_shell_emulator(self, item: QLineEdit):
+        if item.isModified:
+            self.config['shell'] = item.text()
+            return self.save(False)
 
 if __name__ == '__main__':
     app = App(sys.argv)

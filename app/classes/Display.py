@@ -2,12 +2,13 @@
 import traceback
 from datetime import datetime
 
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QRegExpValidator
-from PyQt5.QtWidgets import (QAction, QCheckBox, QComboBox, QDialog, QFormLayout,
-                             QGridLayout, QHBoxLayout, QLabel, QLayout,
-                             QLineEdit, QListWidget, QListWidgetItem, QMenuBar,
-                             QMessageBox, QPushButton, QRadioButton,
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (QAction, QCheckBox, QDialog,
+                             QFormLayout, QGridLayout, QHBoxLayout, QLabel,
+                             QLayout, QLineEdit, QListWidget, QListWidgetItem,
+                             QMenuBar, QMessageBox, QPushButton, QRadioButton,
                              QSpacerItem, QVBoxLayout, QWidget)
 
 from .Singleton import Singleton
@@ -17,6 +18,7 @@ from .Singleton import Singleton
 class Display():
     """
         Display class
+        - Used for display management
     """
     
     def __init__(self, params):
@@ -34,7 +36,7 @@ class Display():
 
         password_field.setPlaceholderText('Your password')
         password_field.setEchoMode(QLineEdit.Password)
-        password_field.textChanged.connect(lambda: self.toogle_echo_password(password_field))
+        password_field.textChanged.connect(lambda: self.toogle_echo_password(password_field, 3000))
 
         self.add_widgets(layout, [
             password_field,
@@ -232,7 +234,7 @@ class Display():
         left_layout = QFormLayout()
         theme_layout = QFormLayout()
         right_layout = QFormLayout()
-        bottom_layout = QHBoxLayout()
+        bottom_layout = QFormLayout()
 
         dark_theme = QRadioButton('Dark', window)
         light_theme = QRadioButton('Light', window)
@@ -244,15 +246,17 @@ class Display():
         delete_conf_btn = QPushButton('Delete all configuration')
         change_password_btn = QPushButton('Change password')
 
-        auto_save_checkbox.setChecked(bool(self.app.config['autoSave']))
+        auto_save_checkbox.setChecked(bool(
+            True if self.app.config['autoSave'] == 'True' else False)
+            )
 
         auto_save_checkbox.stateChanged.connect(lambda:
         self.app.toogle_auto_save(auto_save_checkbox)
         )
         delete_conf_btn.clicked.connect(lambda: self.delete_ui(True))
         change_password_btn.clicked.connect(self.change_password_ui)
-        dark_theme.clicked.connect(lambda: self.app.set_style(dark_theme.text()))
-        light_theme.clicked.connect(lambda: self.app.set_style(light_theme.text()))
+        dark_theme.clicked.connect(lambda: self.set_style(dark_theme.text()))
+        light_theme.clicked.connect(lambda: self.set_style(light_theme.text()))
 
         left_layout.addRow('Theme', theme_layout)
         self.add_widgets(theme_layout, [
@@ -269,14 +273,11 @@ class Display():
         ])
         top_layout.addLayout(right_layout)
 
-        shell_choice = QComboBox()
-        shell_choice.addItems(
-            ['xterm', 'test1', 'test2']
+        shell_choice = QLineEdit(self.app.config['shell'])
+        shell_choice.textEdited.connect(lambda: self.app.change_shell_emulator(shell_choice))
+        bottom_layout.addRow(
+            'Terminal emulator', shell_choice
         )
-        shell_choice.currentIndexChanged.connect(
-            lambda: self.app.change_shell_emulator(shell_choice)
-        )
-        bottom_layout.addWidget(shell_choice)
 
         main_layout.addLayout(top_layout, 0, 0)
         main_layout.addLayout(bottom_layout, 1, 0, QtCore.Qt.AlignmentFlag.AlignTop)
@@ -385,6 +386,31 @@ class Display():
         for action in actions:
             menu.addAction(action)
         return menu
+
+    def set_style(self, theme: str) -> QtGui.QPalette:
+        self.app.setStyle("Fusion")
+        if theme == 'Dark':
+            palette = QtGui.QPalette()
+            palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
+            palette.setColor(QtGui.QPalette.WindowText, Qt.white)
+            palette.setColor(QtGui.QPalette.Base, QtGui.QColor(35, 35, 35))
+            palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
+            palette.setColor(QtGui.QPalette.ToolTipBase, QtGui.QColor(25, 25, 25))
+            palette.setColor(QtGui.QPalette.ToolTipText, Qt.white)
+            palette.setColor(QtGui.QPalette.Text, Qt.white)
+            palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
+            palette.setColor(QtGui.QPalette.ButtonText, Qt.white)
+            palette.setColor(QtGui.QPalette.BrightText, Qt.red)
+            palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+            palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
+            palette.setColor(QtGui.QPalette.HighlightedText, Qt.black)
+        else:
+            palette = self.app.default_palette
+        self.app.config['uiTheme'] = theme
+        self.app.logger.info('Set palette ' + theme)
+        if self.app.config['autoSave'] == "True":
+            self.app.save(False)
+        return self.app.setPalette(palette)
 
     def set_regex(self, regex: str, input: QLineEdit) -> QLineEdit:
         reg_ex = QtCore.QRegExp(regex)
