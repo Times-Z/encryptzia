@@ -49,7 +49,8 @@ deploy-on-github:
   stage: Prod
   image: debian:10
   script:
-    - apt-get update && apt-get install git -y
+    - apt-get update && apt-get install git ssh -y
+    - mkdir -p  ~/.ssh
     - echo ${GITHUB_SSH_PRIVATE} | base64 -d > ~/.ssh/id_rsa
     - echo ${GITHUB_SSH_PUBLIC} | base64 -d > ~/.ssh/id_rsa.pub
     - chmod 600 -R ~/.ssh
