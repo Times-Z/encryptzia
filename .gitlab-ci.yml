@@ -47,7 +47,7 @@ install-debian:
 
 deploy-on-github:
   stage: Prod
-  image: docker:stable
+  image: debian:10
   script:
     - git remote add github git@github.com:Crash-Zeus/encryptzia.git
     - git push --mirror github
