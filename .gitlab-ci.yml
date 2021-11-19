@@ -58,6 +58,7 @@ deploy-on-github:
     - chmod 600 -R ~/.ssh
     - eval $(ssh-agent -s)
     - ssh-add ~/.ssh/id_rsa
+    - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
     - git remote show
     - git push --mirror publicGithub
   only:
