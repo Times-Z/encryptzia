@@ -49,7 +49,7 @@ deploy-on-github:
   stage: Prod
   image: debian:10
   script:
-    - apt install git -y
+    - apt-get update && apt-get install git -y
     - git remote add github git@github.com:Crash-Zeus/encryptzia.git
     - git push --mirror github
   only:
