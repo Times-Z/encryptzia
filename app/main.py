@@ -164,7 +164,8 @@ class App(QApplication):
     def open_ssh_window(self, item: QListWidgetItem):
         connection = self.get_data_by_item(item)
         self.logger.info('Open ' + self.config['shell'] + ' ssh window for ' + connection['uuid'])
-        command = self.root_path + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + connection['password'] + ' ' + self.config['sshTimeout']
+        base_64_password = base64.b64encode(bytes(connection['password'], "utf-8"))
+        command = self.root_path + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + base_64_password.decode("utf-8") + ' ' + self.config['sshTimeout']
         return_code = os.system(self.config['shell'] + " -e 'bash -c \""+command+";\"'")
         self.logger.debug(str(return_code))
 

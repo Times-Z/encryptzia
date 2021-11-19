@@ -2,10 +2,8 @@
 stages:
   - Build
   - Tests
+  - Prod
 
-# ----------------------------------------------------------
-# ETAPE TESTS AUTO
-# ----------------------------------------------------------
 build-debian:
     stage: Build
     image: debian:10
@@ -31,20 +29,6 @@ build-docker-dev:
       - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
       - docker push "$CI_REGISTRY_IMAGE:stable"
 
-
-# build-rhel:
-#     stage: Build
-#     image: debian:10
-#     script:
-#       - apt-get update -y && apt-get install curl alien -y
-#       - mv ./DEBIAN ./app
-#       - chmod 0755 -R ./app
-#       - dpkg-deb -b app /tmp/atelier.deb
-#       - cd /tmp && alien /tmp/atelier.deb --to-rpm --scripts
-#       - |-
-#         package=$(ls /tmp | grep MaxiAtelier)
-#         [ -f $package ] && echo "Build completed" || exit 1
-
 install-debian:
     stage: Tests
     image: debian:10
@@ -61,16 +45,12 @@ install-debian:
       - apt install /tmp/encryptzia.deb -y
     needs: ["build-debian"]
 
-# install-rhel:
-#     stage: Tests
-#     image: centos:7
-#     script:
-#       - yum install -y epel-release && yum install -y alien
-#       - mv ./DEBIAN ./app
-#       - chmod 0755 -R ./app
-#       - dpkg-deb -b app /tmp/atelier.deb
-#       - cd /tmp && alien /tmp/atelier.deb --to-rpm --scripts
-#       - |-
-#         package=$(ls /tmp | grep MaxiAtelier)
-#         rpm -i --replacefiles /tmp/$package
-#     needs: ["build-rhel"]
+deploy-on-github:
+  stage: Prod
+  image: docker:stable
+  script:
+    - git remote add github git@github.com:Crash-Zeus/encryptzia.git
+    - git push --mirror github
+  only:
+    - main
+  when: manual
