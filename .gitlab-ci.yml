@@ -54,7 +54,7 @@ deploy-on-github:
     - echo ${GITHUB_SSH_PRIVATE} | base64 -d > ~/.ssh/id_rsa
     - echo ${GITHUB_SSH_PUBLIC} | base64 -d > ~/.ssh/id_rsa.pub
     - chmod 600 -R ~/.ssh
-    - exec ssh-agent bash
+    - exec ssh-agent bash &
     - ssh-add ~/.ssh/id_rsa
     - git remote add publicGithub git@github.com:Crash-Zeus/encryptzia.git
     - git push --mirror publicGithub
