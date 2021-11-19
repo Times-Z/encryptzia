@@ -59,7 +59,6 @@ deploy-on-github:
     - eval $(ssh-agent -s)
     - ssh-add ~/.ssh/id_rsa
     - git remote show
-    - git remote add publicGithub git@github.com:Crash-Zeus/encryptzia.git
     - git push --mirror publicGithub
   only:
     - main
