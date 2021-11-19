@@ -52,12 +52,13 @@ deploy-on-github:
     - apt-get update && apt-get install git ssh -y
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client git -y )'
     - mkdir -p  ~/.ssh
+  script:
     - echo ${GITHUB_SSH_PRIVATE} | base64 -d > ~/.ssh/id_rsa
     - echo ${GITHUB_SSH_PUBLIC} | base64 -d > ~/.ssh/id_rsa.pub
     - chmod 600 -R ~/.ssh
     - eval $(ssh-agent -s)
     - ssh-add ~/.ssh/id_rsa
-  script:
+    - cat ~/.ssh/id_rsa
     - git remote add publicGithub git@github.com:Crash-Zeus/encryptzia.git
     - git push --mirror publicGithub
   only:
