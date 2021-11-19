@@ -50,6 +50,9 @@ deploy-on-github:
   image: debian:10
   script:
     - apt-get update && apt-get install git -y
+    - echo ${GITHUB_SSH_PRIVATE} | base64 -d > ~/.ssh/id_rsa
+    - echo ${GITHUB_SSH_PUBLIC} | base64 -d > ~/.ssh/id_rsa.pub
+    - chmod 600 -R ~/.ssh
     - git remote add github git@github.com:Crash-Zeus/encryptzia.git
     - git push --mirror github
   only:
