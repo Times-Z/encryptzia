@@ -48,14 +48,16 @@ install-debian:
 deploy-on-github:
   stage: Prod
   image: debian:10
-  script:
+  before_script:
     - apt-get update && apt-get install git ssh -y
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client git -y )'
     - mkdir -p  ~/.ssh
     - echo ${GITHUB_SSH_PRIVATE} | base64 -d > ~/.ssh/id_rsa
     - echo ${GITHUB_SSH_PUBLIC} | base64 -d > ~/.ssh/id_rsa.pub
     - chmod 600 -R ~/.ssh
-    - exec ssh-agent bash &
+    - eval $(ssh-agent -s)
     - ssh-add ~/.ssh/id_rsa
+  script:
     - git remote add publicGithub git@github.com:Crash-Zeus/encryptzia.git
     - git push --mirror publicGithub
   only:
