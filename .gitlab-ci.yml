@@ -60,7 +60,7 @@ deploy-on-github:
     - ssh-add ~/.ssh/id_rsa
     - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
     - git remote show
-    - git push --mirror --force publicGithub
+    - git push publicGithub
   only:
     - main
   when: manual
