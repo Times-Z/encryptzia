@@ -8,6 +8,7 @@ import shutil
 import sys
 import traceback
 import uuid
+import subprocess
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
@@ -15,8 +16,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QLineEdit,
-                             QListWidgetItem, QMessageBox,
-                             QWidget)
+                             QListWidgetItem, QMessageBox, QWidget)
 
 from classes import Display, Logger
 
@@ -166,8 +166,7 @@ class App(QApplication):
         self.logger.info('Open ' + self.config['shell'] + ' ssh window for ' + connection['uuid'])
         base_64_password = base64.b64encode(bytes(connection['password'], "utf-8"))
         command = self.root_path + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + base_64_password.decode("utf-8") + ' ' + self.config['sshTimeout']
-        return_code = os.system(self.config['shell'] + " -e 'bash -c \""+command+";\"'")
-        self.logger.debug(str(return_code))
+        subprocess.run([self.config['shell'], "-e", 'bash -c "'+command+'";'])
 
     def get_data_by_item(self, item: QListWidgetItem) -> dict:
         for entrie in self.config['entries']:
