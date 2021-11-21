@@ -22,6 +22,11 @@ class Display():
         self.timer_running = False
 
     def ask_password_ui(self) -> QDialog:
+        """
+            Build ask password ui
+            - QDialog
+            - QGridLayout
+        """
         window = QDialog()
         layout = QGridLayout()
         password_field = QLineEdit()
@@ -42,14 +47,20 @@ class Display():
         window.setLayout(layout)
 
         self.app.logger.info('Build ask password ui')
-        accept_btn.clicked.connect(lambda: self.app.load_connection({
+        accept_btn.clicked.connect(lambda: self.app.load_configuration({
             'ui': window,
             'field': password_field
         }))
         return window.exec_()
 
     def main_ui(self) -> QWidget:
-
+        """
+            Build main window ui
+            - Qwidget
+            - QGridLayout
+            - QMenuBar
+            - QListWidget
+        """
         self.main_window = QWidget()
         menu_bar = QMenuBar(self.main_window)
         layout = QGridLayout()
@@ -122,6 +133,12 @@ class Display():
         return self.main_window
 
     def add_edit_connection_ui(self, mode='add') -> QDialog:
+        """
+            Build add and edit connection ui
+            - QDialog
+            - QVBoxLayout
+            - QFormLayout
+        """
         window = QDialog()
         data = None
 
@@ -190,6 +207,10 @@ class Display():
         return window.exec_()
 
     def delete_ui(self, delete_all=False) -> None:
+        """
+            Build delete connection or delete configuration ui
+            - QMessageBox
+        """
         window = QMessageBox()
         window.setIcon(QMessageBox.Warning)
         window.setWindowTitle('WARNING')
@@ -221,6 +242,13 @@ class Display():
         return self.refresh_connection_list()
 
     def settings_ui(self) -> QDialog:
+        """
+            Build setting ui
+            - QDialog
+                - QGridLayout
+                - QHBoxLayout
+                - QFormLayout
+        """
         window = QDialog()
         window.setWindowTitle('Settings')
         window.setFixedSize(400, 400)
@@ -282,6 +310,11 @@ class Display():
         return window.exec_()
 
     def change_password_ui(self, first_set=False) -> QDialog:
+        """
+            Build change password ui
+            - QDialog
+                - QGridLayout
+        """
         window = QDialog()
         layout = QGridLayout()
         if first_set:
@@ -320,6 +353,10 @@ class Display():
         return window.exec_()
 
     def about_ui(self) -> QMessageBox:
+        """
+            Build about ui
+            - QMessageBox
+        """
         window = QMessageBox()
         window.setWindowTitle('About')
         window.setText("""
@@ -335,6 +372,9 @@ class Display():
         return window.exec_()
 
     def refresh_connection_list(self) -> None:
+        """
+            Clear and load QListWidgetItems for main window
+        """
         self.connection_list.clear()
         try:
             if self.app.config is not None:
@@ -351,11 +391,23 @@ class Display():
         self.app.logger.info('Refresh connection list')
 
     def toogle_echo_password(self, item: QLineEdit, msec=500) -> None:
+        """
+            Toogle echo mode for item
+
+            Password mode to normal mode for msec time
+        """
         if item.echoMode() == QLineEdit.Password:
             item.setEchoMode(QLineEdit.Normal)
         return QtCore.QTimer.singleShot(msec, lambda: item.setEchoMode(QLineEdit.Password))
 
     def notify(self, text: str, type: str) -> QMessageBox:
+        """
+            Create a QMessageBox to notify user
+
+            Auto close after 1 seconde
+
+            - QMessageBox
+        """
         icons = {
             'error': QMessageBox.Critical,
             'ok': QMessageBox.Information
@@ -369,21 +421,35 @@ class Display():
         return window.exec_()
 
     def add_rows(self, layout: QFormLayout, rows: list) -> QFormLayout:
+        """
+            Add multiple row in QFormLayout from list
+        """
         for row in rows:
             layout.addRow((row.get('label')), row.get('widget'))
         return layout
 
     def add_widgets(self, layout: QLayout, widgets: list) -> QLayout:
+        """
+            Add multiple widget to QLayout from list
+        """
         for widget in widgets:
             layout.addWidget(widget)
         return layout
     
     def add_actions(self, menu: QMenuBar, actions: list) -> QMenuBar:
+        """
+            Add multiple action to QmenuBar from list
+        """
         for action in actions:
             menu.addAction(action)
         return menu
 
     def set_style(self, theme: str) -> QtGui.QPalette:
+        """
+            Set application style from configuration
+
+            Default is light theme
+        """
         self.app.setStyle("Fusion")
         if theme == 'Dark':
             palette = QtGui.QPalette()
@@ -409,6 +475,9 @@ class Display():
         return self.app.setPalette(palette)
 
     def set_regex(self, regex: str, input: QLineEdit) -> QLineEdit:
+        """
+            Define regex to a QLineEdit
+        """
         reg_ex = QtCore.QRegExp(regex)
         input_validator = QRegExpValidator(reg_ex, input)
         input.setValidator(input_validator)

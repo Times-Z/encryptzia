@@ -51,18 +51,29 @@ class App(QApplication):
         self.logger.info(self.program_name + ' ' + self.version)
 
     def run(self) -> QWidget:
+        """
+            Run the program
+        """
         first_set = self.check_config()
         if first_set:
-            self.load_connection({}, True)
+            self.load_configuration({}, True)
         else:
             self.display.ask_password_ui()
         self.display.set_style(self.config['uiTheme'])
         return self.display.main_ui()
 
     def check_config(self) -> bool:
+        """
+            Check the configuration
+
+            (to do : check running program)
+        """
         return self.create_config()
 
     def gen_one_time_key(self, passwd: str) -> bytes:
+        """
+            Generate one time key from password to encrypte / decrypte file
+        """
         password = passwd.encode()
         salt = bytes(str(uuid.getnode()).encode("utf-8"))
         kdf = PBKDF2HMAC(
@@ -78,7 +89,7 @@ class App(QApplication):
 
     def save(self, notify=True) -> bool:
         """
-            save configuration
+            Save configuration
         """
         try:
             encrypted = self.fernet.encrypt((json.dumps(self.config)).encode("utf-8"))
@@ -93,7 +104,10 @@ class App(QApplication):
             self.logger.crit(log)
             return False
 
-    def load_connection(self, params: dict, first_set=False) -> bool:
+    def load_configuration(self, params: dict, first_set=False) -> bool:
+        """
+            Decrypt file and load configuration
+        """
         if not first_set:
             passwd = (params.get('field')).text()
             key = self.gen_one_time_key(passwd)
@@ -113,6 +127,11 @@ class App(QApplication):
         return returned
 
     def add_edit_connection_process(self, params: dict) -> bool:
+        """
+            Store data for add or edit connection ui
+
+            Save data if auto saved is on
+        """
         data = {
             "uuid": params.get('uuid') if params.get('uuid') else str(uuid.uuid4()),
             "name": params.get('name').text(),
@@ -132,6 +151,11 @@ class App(QApplication):
         return (params.get('ui').close())
 
     def delete_connection_process(self, action: int, item: QListWidgetItem) -> bool:
+        """
+            Delete connection for connection ui
+
+            Save data if auto saved is on
+        """
         if action == QMessageBox.Yes:
             i = self.get_item_config_position(item.data(999))
             del self.config['entries'][i]
@@ -142,7 +166,10 @@ class App(QApplication):
         else:
             return False
 
-    def delete_config_process(self, action) -> int:
+    def delete_config_process(self, action) -> bool:
+        """
+            Delete $HOME/.config/encryptzia and exit program
+        """
         if action == QMessageBox.Yes:
             shutil.rmtree(os.environ.get('HOME') + '/.config/encryptzia')
             self.logger.info('Removed $HOME/.config/encryptzia')
@@ -151,10 +178,18 @@ class App(QApplication):
             return False
 
     def define_current_item(self, item: QListWidgetItem) -> QListWidgetItem:
+        """
+            Store item clicked in variable
+        """
         self.current_selected = item
         return self.current_selected
 
     def get_item_config_position(self, uuid: str) -> int:
+        """
+            Get item position in configuration by unique id
+
+            Used for editing or removing object from configuration
+        """
         i=0
         for entrie in self.config['entries']:
             if entrie['uuid'] == uuid:
@@ -199,6 +234,9 @@ class App(QApplication):
         return process.poll()
 
     def get_data_by_item(self, item: QListWidgetItem) -> dict:
+        """
+            Get data from item by unique id
+        """
         for entrie in self.config['entries']:
             if entrie['uuid'] == item.data(999):
                 data = entrie
@@ -206,6 +244,9 @@ class App(QApplication):
         return data
 
     def create_config(self) -> bool:
+        """
+            Create configuration if not exist
+        """
         created = False
         if not os.path.exists(os.path.dirname(self.config_path)):
             self.logger.info('Creating ' + str(os.path.dirname(self.config_path)))
@@ -236,6 +277,9 @@ class App(QApplication):
         return created
 
     def set_password(self, params: dict):
+        """
+            Set or edit the main password of app
+        """
         if (params.get('password')).text() == (params.get('repassword')).text():
             key = self.gen_one_time_key(params.get('password').text())
             self.fernet = Fernet(key)
