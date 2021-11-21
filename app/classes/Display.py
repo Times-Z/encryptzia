@@ -5,24 +5,20 @@ from datetime import datetime
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QRegExpValidator
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (QAction, QCheckBox, QDialog,
+from PyQt5.QtWidgets import (QAction, QApplication, QCheckBox, QDialog,
                              QFormLayout, QGridLayout, QHBoxLayout, QLabel,
                              QLayout, QLineEdit, QListWidget, QListWidgetItem,
                              QMenuBar, QMessageBox, QPushButton, QRadioButton,
                              QSpacerItem, QVBoxLayout, QWidget)
 
-from .Singleton import Singleton
-
-
-@Singleton
 class Display():
     """
         Display class
         - Used for display management
     """
     
-    def __init__(self, params):
-        self.app = params.get('app')
+    def __init__(self, app: QApplication):
+        self.app = app
         self.timer_running = False
 
     def ask_password_ui(self) -> QDialog:

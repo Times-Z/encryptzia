@@ -8,10 +8,16 @@ set timeout [lindex $argv 4]
 set password [exec echo -n $b64password | base64 -d]
 
 spawn ssh -o ConnectTimeout=$timeout $user@$ip -p $port
+set timeout 1
 expect {
-        "fingerprint"  {send "yes\r"}
+        "fingerprint"  {
+                send "yes\r"
+        }
 }
+set timeout 20
 expect {
-        "password"  {send "$password\r"}
+        "password"  {
+                send "$password\r"
+        }
 }
 interact

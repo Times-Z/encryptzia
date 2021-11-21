@@ -9,6 +9,8 @@ import sys
 import traceback
 import uuid
 import subprocess
+import threading
+import time
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
@@ -39,8 +41,8 @@ class App(QApplication):
         self.config_path = os.environ.get('HOME')+'/.config/encryptzia/user.json'
         self.current_selected = None
         self.timer_running = False
-        self.display = Display.instance({'app': self})
-        self.logger = Logger.instance()
+        self.display = Display(self)
+        self.logger = Logger()
         self.logger.config(self.log_path)
         self.logger.debug('Os : ' + sys.platform)
         self.logger.debug('Python version ' + str(sys.version_info.major)
@@ -150,7 +152,6 @@ class App(QApplication):
 
     def define_current_item(self, item: QListWidgetItem) -> QListWidgetItem:
         self.current_selected = item
-        self.logger.info('Current item : ' + item.data(999))
         return self.current_selected
 
     def get_item_config_position(self, uuid: str) -> int:
@@ -161,12 +162,41 @@ class App(QApplication):
             i+=1
         return i
 
-    def open_ssh_window(self, item: QListWidgetItem):
+    def open_ssh_window(self, item: QListWidgetItem) -> threading.Thread:
+        """
+            Create a thread and open an ssh window on it
+        """
         connection = self.get_data_by_item(item)
-        self.logger.info('Open ' + self.config['shell'] + ' ssh window for ' + connection['uuid'])
+        self.logger.info(f'Open {self.config["shell"]} ssh window')
         base_64_password = base64.b64encode(bytes(connection['password'], "utf-8"))
-        command = self.root_path + '/run.sh ' + connection['username'] + ' ' + connection['ip'] + ' ' + connection['port'] + ' ' + base_64_password.decode("utf-8") + ' ' + self.config['sshTimeout']
-        subprocess.run([self.config['shell'], "-e", 'bash -c "'+command+'";'])
+        command = (
+            self.root_path
+            + '/run.sh'
+            + ' ' + connection['username']
+            + ' ' + connection['ip']
+            + ' ' + connection['port']
+            + ' ' + base_64_password.decode("utf-8")
+            + ' ' + self.config['sshTimeout']
+            )
+        thread = threading.Thread(
+            target=self.execute_command_on_thread, args=(command,item,)
+        )
+        thread.start()
+        return thread
+
+    def execute_command_on_thread(self, command: str, item: QListWidgetItem) -> int:
+        """
+            Execute command and get return code for a subprocess in a thread
+        """
+        process = subprocess.Popen(
+            self.config['shell'] + " -e bash -c '" + command + "';", shell=True
+            )
+        thread_name = threading.current_thread().getName()
+        self.logger.info(f'{thread_name} running for item {item.data(999)}')
+        while process.poll() is None:
+            time.sleep(0.1)
+        self.logger.info(f'{thread_name} stop with code {str(process.poll())}')
+        return process.poll()
 
     def get_data_by_item(self, item: QListWidgetItem) -> dict:
         for entrie in self.config['entries']:
