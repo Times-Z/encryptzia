@@ -12,7 +12,7 @@ sudo apt install $HOME/Download/encryptzia.deb
 
 ## Development installation
 
-For development usage, [x11](https://fr.wikipedia.org/wiki/X_Window_System), [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/gettingstarted/) are required.
+For development usage, [x11](https://wikipedia.org/wiki/X_Window_System), [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/gettingstarted/) are required.
 
 First of all build the dev image :
 ```shell
