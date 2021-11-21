@@ -444,7 +444,7 @@ class Display():
             menu.addAction(action)
         return menu
 
-    def set_style(self, theme: str) -> QtGui.QPalette:
+    def set_style(self, theme: str, init=False) -> QtGui.QPalette:
         """
             Set application style from configuration
 
@@ -470,8 +470,9 @@ class Display():
             palette = self.app.default_palette
         self.app.config['uiTheme'] = theme
         self.app.logger.info('Set palette ' + theme)
-        if self.app.config['autoSave'] == "True":
-            self.app.save(False)
+        if not init:
+            if self.app.config['autoSave'] == "True":
+                self.app.save(False)
         return self.app.setPalette(palette)
 
     def set_regex(self, regex: str, input: QLineEdit) -> QLineEdit:

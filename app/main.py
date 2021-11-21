@@ -59,7 +59,7 @@ class App(QApplication):
             self.load_configuration({}, True)
         else:
             self.display.ask_password_ui()
-        self.display.set_style(self.config['uiTheme'])
+        self.display.set_style(self.config['uiTheme'], True)
         return self.display.main_ui()
 
     def check_config(self) -> bool:
