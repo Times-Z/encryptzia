@@ -38,9 +38,8 @@ class App(QApplication):
         self.default_palette = QtGui.QGuiApplication.palette()
         self.root_path = os.path.dirname(os.path.realpath(__file__))
         self.log_path = '/var/log/encryptzia.log'
-        self.config_path = os.environ.get('HOME')+'/.config/encryptzia/user.json'
+        self.config_path = os.environ.get('HOME') + '/.config/encryptzia/user.json'
         self.current_selected = None
-        self.timer_running = False
         self.display = Display(self)
         self.logger = Logger()
         self.logger.config(self.log_path)
@@ -293,6 +292,9 @@ class App(QApplication):
             self.display.notify('Both password not matched', 'error')
 
     def toogle_auto_save(self, checkbox: QCheckBox) -> bool:
+        """
+            Toogle auto save
+        """
         actual = self.config['autoSave']
         if checkbox.isChecked():
             self.config['autoSave'] = "True"
@@ -304,7 +306,7 @@ class App(QApplication):
         self.save(False)
         return self.config['autoSave']
 
-    def change_shell_emulator(self, item: QLineEdit):
+    def change_shell_emulator(self, item: QLineEdit) -> bool:
         if item.isModified:
             self.config['shell'] = item.text()
             return self.save(False)
