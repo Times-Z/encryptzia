@@ -5,6 +5,7 @@ services:
     user: root
     volumes:
       - ./app:/var/lib/encryptzia:rw
+      - ./config:/root/.config/encryptzia:rw
       - ./app/app.log:/var/log/encryptzia.log:rw
       - /tmp/.X11-unix:/tmp/.X11-unix
     ports:
