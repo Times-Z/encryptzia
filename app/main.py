@@ -23,7 +23,7 @@ from PyQt5.QtWidgets import (QApplication, QCheckBox, QLineEdit,
 from classes import Display, Logger
 
 
-class App(QApplication):
+class Encryptzia(QApplication):
     """
         Main class
         - Run the program
@@ -32,7 +32,7 @@ class App(QApplication):
     """
 
     def __init__(self, sys_argv):
-        super(App, self).__init__(sys_argv)
+        super(Encryptzia, self).__init__(sys_argv)
         self.program_name = 'Encryptzia'
         self.version = "0.1.0"
         self.default_palette = QtGui.QGuiApplication.palette()
@@ -312,7 +312,7 @@ class App(QApplication):
             return self.save(False)
 
 if __name__ == '__main__':
-    app = App(sys.argv)
+    app = Encryptzia(sys.argv)
     app.setWindowIcon(QtGui.QIcon(app.root_path + '/assets/imgs/icon.png'))
     app.run()
     sys.exit(app.exec_())
