@@ -1,7 +1,8 @@
 FROM ubuntu:20.04
 
 ARG DEBIAN_FRONTEND=noninteractive
-ENV XDG_RUNTIME_DIR /run/user/1000
+ENV XDG_RUNTIME_DIR=/run/user/1000
+ENV PYTEST_QT_API=pyqt5
 
 COPY ./app /var/lib/encryptzia
 COPY ./build/launcher.sh /usr/bin/encryptzia
