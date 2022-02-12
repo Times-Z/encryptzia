@@ -23,7 +23,6 @@ build-debian:
 build-docker-dev:
     stage: Build
     image: docker:stable
-    when: manual
     script:
       - docker build -t "$CI_REGISTRY_IMAGE:stable" .
       - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
