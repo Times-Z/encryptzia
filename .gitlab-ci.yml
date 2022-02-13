@@ -102,7 +102,7 @@ release:
           -u "Crash-Zeus:${GITHUB_TOKEN}" \
           -H "Accept: application/vnd.github.v3+json" \
           https://api.github.com/repos/Crash-Zeus/encryptzia/releases \
-          -d '{"tag_name":"${VERSION}"}' | jq .id)
+          -d "{\"tag_name\":\"$VERSION\"}" | jq .id)
 
         curl \
           -u "Crash-Zeus:${GITHUB_TOKEN}" \
