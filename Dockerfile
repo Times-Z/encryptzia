@@ -1,8 +1,9 @@
-FROM ubuntu:20.04
+FROM debian:10.4
 
 ARG DEBIAN_FRONTEND=noninteractive
 ENV XDG_RUNTIME_DIR=/run/user/1000
 ENV PYTEST_QT_API=pyqt5
+ENV ENCRYPTZIA_DEV_MODE=true
 
 COPY ./app /var/lib/encryptzia
 COPY ./build/launcher.sh /usr/bin/encryptzia

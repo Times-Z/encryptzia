@@ -38,15 +38,17 @@ class Encryptzia(QApplication):
         self.default_palette = QtGui.QGuiApplication.palette()
         self.root_path = os.path.dirname(os.path.realpath(__file__))
         self.log_path = '/var/log/encryptzia.log'
-        self.config_path = os.environ.get('HOME') + '/.config/encryptzia/user.json'
+        self.config_path = os.environ.get(
+            'HOME') + '/.config/encryptzia/user.json'
         self.current_selected = None
         self.display = Display(self)
         self.logger = Logger()
         self.logger.config(self.log_path)
         self.logger.debug('Os : ' + sys.platform)
         self.logger.debug('Python version ' + str(sys.version_info.major)
-            + '.' + str(sys.version_info.micro) + '.' + str(sys.version_info.minor)
-        )
+                          + '.' + str(sys.version_info.micro) +
+                          '.' + str(sys.version_info.minor)
+                          )
         self.logger.info(self.program_name + ' ' + self.version)
 
     def run(self) -> QWidget:
@@ -74,7 +76,8 @@ class Encryptzia(QApplication):
             Generate one time key from password to encrypte / decrypte file
         """
         password = passwd.encode()
-        salt = bytes(str(uuid.getnode()).encode("utf-8"))
+        salt = bytes(str(uuid.getnode()).encode("utf-8")) if (os.environ.get('ENCRYPTZIA_DEV_MODE')
+                                                              is None or os.environ.get('ENCRYPTZIA_DEV_MODE') == 'false') else bytes(("devSaltIsNotSecure").encode("utf-8"))
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
@@ -91,9 +94,10 @@ class Encryptzia(QApplication):
             Save configuration
         """
         try:
-            encrypted = self.fernet.encrypt((json.dumps(self.config)).encode("utf-8"))
+            encrypted = self.fernet.encrypt(
+                (json.dumps(self.config)).encode("utf-8"))
             with open(self.config_path, "wb") as f:
-                    f.write(encrypted)
+                f.write(encrypted)
             if notify:
                 self.display.notify('Saved', 'ok')
             self.logger.info('Saved')
@@ -189,11 +193,11 @@ class Encryptzia(QApplication):
 
             Used for editing or removing object from configuration
         """
-        i=0
+        i = 0
         for entrie in self.config['entries']:
             if entrie['uuid'] == uuid:
                 break
-            i+=1
+            i += 1
         return i
 
     def open_ssh_window(self, item: QListWidgetItem) -> threading.Thread:
@@ -202,7 +206,8 @@ class Encryptzia(QApplication):
         """
         connection = self.get_data_by_item(item)
         self.logger.info(f'Open {self.config["shell"]} ssh window')
-        base_64_password = base64.b64encode(bytes(connection['password'], "utf-8"))
+        base_64_password = base64.b64encode(
+            bytes(connection['password'], "utf-8"))
         command = (
             self.root_path
             + '/run.sh'
@@ -211,9 +216,9 @@ class Encryptzia(QApplication):
             + ' ' + connection['port']
             + ' ' + base_64_password.decode("utf-8")
             + ' ' + self.config['sshTimeout']
-            )
+        )
         thread = threading.Thread(
-            target=self.execute_command_on_thread, args=(command,item,)
+            target=self.execute_command_on_thread, args=(command, item)
         )
         thread.start()
         return thread
@@ -224,7 +229,7 @@ class Encryptzia(QApplication):
         """
         process = subprocess.Popen(
             self.config['shell'] + " -e bash -c '" + command + "';", shell=True
-            )
+        )
         thread_name = threading.current_thread().getName()
         self.logger.info(f'{thread_name} running for item {item.data(999)}')
         while process.poll() is None:
@@ -248,7 +253,8 @@ class Encryptzia(QApplication):
         """
         created = False
         if not os.path.exists(os.path.dirname(self.config_path)):
-            self.logger.info('Creating ' + str(os.path.dirname(self.config_path)))
+            self.logger.info(
+                'Creating ' + str(os.path.dirname(self.config_path)))
             os.makedirs(os.path.dirname(self.config_path))
             created = True
         if not os.path.isfile(self.config_path):
@@ -301,7 +307,8 @@ class Encryptzia(QApplication):
         else:
             self.config['autoSave'] = "False"
         self.logger.info(
-            'AutoSave from ' + str(actual) + ' to ' + str(self.config['autoSave'])
+            'AutoSave from ' + str(actual) + ' to ' +
+            str(self.config['autoSave'])
         )
         self.save(False)
         return self.config['autoSave']
@@ -310,6 +317,7 @@ class Encryptzia(QApplication):
         if item.isModified:
             self.config['shell'] = item.text()
             return self.save(False)
+
 
 if __name__ == '__main__':
     app = Encryptzia(sys.argv)
