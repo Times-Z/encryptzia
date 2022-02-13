@@ -1,27 +1,47 @@
 # Etapes du CI/CD
 stages:
-  - Build
+  - Base Build
+  - Other Build
   - Tests
-  - Prod
+  - Release
+  - Github
+
+variables:
+  VERSION: "0.1.1"
+  DEB_PATH: ".cache/encryptzia.deb"
+  ARCH_PATH: ".cache/encryptzia-${VERSION}-1-x86_64.pkg.tar.zst"
 
 build-debian:
-    stage: Build
+    stage: Base Build
     image: debian:10
+    cache:
+      key:
+        files:
+          - .cache/encryptzia.deb
+      policy: push
+    artifacts:
+      paths:
+        - .cache/encryptzia.deb
+      expire_in: 20 minutes
     script:
-      - apt-get update -y && apt-get install curl alien -y
+      - apt-get update -y && apt-get install curl -y
       - |-
+        sed -i "s/VERSION_CI/"$VERSION"/g" ./build/DEBIAN/control
+        sed -i "s/VERSION_CI/"$VERSION"/g" ./build/Encryptzia.desktop
+        echo $VERSION > ./app/version.dat
         mkdir -p /tmp/app/var/lib/encryptzia
         cp -R ./app/* /tmp/app/var/lib/encryptzia
         mkdir -p /tmp/app/usr/local/bin
         cp ./build/launcher.sh /tmp/app/usr/local/bin/encryptzia
         cp -R ./build/DEBIAN /tmp/app
         chmod 755 -R /tmp/app
-      - dpkg-deb -b /tmp/app /tmp/encryptzia.deb
+        mkdir -p .cache
+      - dpkg-deb -b /tmp/app $DEB_PATH
       - |-
-        [ -f /tmp/encryptzia.deb ] && echo "Build completed" || exit 1
+        [ -f $DEB_PATH ] && echo "Build completed" || exit 1
 
 build-docker-dev:
-    stage: Build
+    stage: Base Build
     image: docker:stable
     script:
       - docker build -t "$CI_REGISTRY_IMAGE:stable" .
@@ -31,24 +51,80 @@ build-docker-dev:
       changes:
         - Dockerfile
 
+build-arch:
+    stage: Other Build
+    image: archlinux:base
+    before_script:
+      - pacman -Sy && pacman -S --noconfirm --needed binutils wget unzip pkgfile fakeroot tar
+      - wget -O debtap.zip https://github.com/helixarch/debtap/archive/refs/tags/3.4.2.zip
+      - unzip debtap.zip && mv ./debtap-3.4.2/debtap /usr/local/bin
+    script:
+      - cd .cache && debtap -u && debtap -Q encryptzia.deb
+    cache:
+      key:
+        files:
+          - .cache/encryptzia-${VERSION}-1-x86_64.pkg.tar.zst
+      policy: push
+    artifacts:
+      paths:
+        - .cache/encryptzia-${VERSION}-1-x86_64.pkg.tar.zst
+      expire_in: 20 minutes
+
 install-debian:
     stage: Tests
     image: debian:10
     script:
-      - apt-get update -y && apt-get install curl alien -y
-      - |-
-        mkdir -p /tmp/app/var/lib/encryptzia
-        cp -R ./app/* /tmp/app/var/lib/encryptzia
-        mkdir -p /tmp/app/usr/local/bin
-        cp ./build/launcher.sh /tmp/app/usr/local/bin/encryptzia
-        cp -R ./build/DEBIAN /tmp/app
-        chmod 755 -R /tmp/app
-      - dpkg-deb -b /tmp/app /tmp/encryptzia.deb
-      - apt install /tmp/encryptzia.deb -y
+      - apt-get update
+      - apt-get install ./$DEB_PATH -y
     needs: ["build-debian"]
 
+install-arch:
+    stage: Tests
+    image: archlinux:base
+    script:
+      - pacman -Sy
+      - pacman -U --noconfirm $ARCH_PATH
+    needs: ["build-arch"]
+
+release:
+  stage: Release
+  image: debian:10
+  rules:
+    - if: $CI_COMMIT_TAG
+  before_script:
+    - apt-get update && apt-get install -y curl jq
+  script:
+    - |- 
+        release_id=$(curl \
+          -X POST \
+          -u "Crash-Zeus:$GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/Crash-Zeus/encryptzia/releases \
+          -d '{"tag_name":"$VERSION"}' | jq .id)
+
+        curl \
+          -u "Crash-Zeus:$GITHUB_TOKEN" \
+          -X POST \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Content-Type: application/vnd.debian.binary-package" \
+          --data-binary @$DEB_PATH \
+          https://uploads.github.com/repos/Crash-Zeus/encryptzia/releases/$release_id/assets?name=Encryptzia.deb | jq .state
+
+        curl \
+          -u "Crash-Zeus:$GITHUB_TOKEN" \
+          -X POST \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Content-Type: application/x-zstd" \
+          --data-binary @$ARCH_PATH \
+          https://uploads.github.com/repos/Crash-Zeus/encryptzia/releases/$release_id/assets?name=Encryptzia.pkg.tar.zst | jq .state
+  release:
+    name: 'Release $VERSION'
+    description: 'Created using gitlab and deploy to github'
+    tag_name: '$CI_COMMIT_TAG'
+    ref: '$VERSION'
+
 deploy-on-github:
-  stage: Prod
+  stage: Github
   image: debian:10
   before_script:
     - apt-get update && apt-get install git ssh -y
