@@ -3,12 +3,12 @@ import traceback
 from datetime import datetime
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtGui import QRegExpValidator, QCursor
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QAction, QApplication, QCheckBox, QDialog,
                              QFormLayout, QGridLayout, QHBoxLayout, QLabel,
                              QLayout, QLineEdit, QListWidget, QListWidgetItem,
-                             QMenuBar, QMessageBox, QPushButton, QRadioButton,
+                             QMenu, QMenuBar, QMessageBox, QPushButton, QRadioButton,
                              QSpacerItem, QVBoxLayout, QWidget)
 
 class Display():
@@ -73,6 +73,8 @@ class Display():
         self.refresh_connection_list()
 
         self.main_window.setWindowTitle(self.app.program_name)
+        self.connection_list.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.connection_list.customContextMenuRequested.connect(self.context_menu)
 
         file_menu = menu_bar.addMenu('File')
         edit_menu = menu_bar.addMenu('Edition')
@@ -131,6 +133,27 @@ class Display():
         self.app.logger.info('Build main ui')
 
         return self.main_window
+
+    def context_menu(self) -> QAction:
+        """
+            Build context menu with actions
+        """
+        menu = QMenu(self.main_window)
+        add_action = QAction("Add connection")
+        edit_action = QAction("Edit connection")
+        delete_action = QAction("Delete connection")
+
+        add_action.triggered.connect(lambda: self.add_edit_connection_ui('add'))
+        edit_action.triggered.connect(lambda: self.add_edit_connection_ui('edit'))
+        delete_action.triggered.connect(lambda: self.delete_ui())
+
+        self.add_actions(menu, [
+            add_action,
+            edit_action,
+            delete_action
+        ])
+
+        return menu.exec_(QCursor.pos())
 
     def add_edit_connection_ui(self, mode='add') -> QDialog:
         """
