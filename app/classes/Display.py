@@ -11,15 +11,16 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCheckBox, QDialog,
                              QMenu, QMenuBar, QMessageBox, QPushButton, QRadioButton,
                              QSpacerItem, QVBoxLayout, QWidget)
 
+
 class Display():
     """
         Display class
         - Used for display management
     """
-    
+
     def __init__(self, app: QApplication):
         self.app = app
-        self.timer_running = False
+        self.show_pass = False
 
     def ask_password_ui(self) -> QDialog:
         """
@@ -28,8 +29,10 @@ class Display():
             - QGridLayout
         """
         window = QDialog()
-        layout = QGridLayout()
+        main_layout = QGridLayout()
+        layout = QHBoxLayout()
         password_field = QLineEdit()
+        show_password_checkbox = QCheckBox('show')
         accept_btn = QPushButton('unlock')
 
         window.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint, True)
@@ -37,20 +40,28 @@ class Display():
 
         password_field.setPlaceholderText('Your password')
         password_field.setEchoMode(QLineEdit.Password)
-        password_field.textChanged.connect(lambda: self.toogle_echo_password(password_field, 3000))
 
         self.add_widgets(layout, [
             password_field,
-            accept_btn
+            show_password_checkbox
         ])
 
-        window.setLayout(layout)
+        main_layout.addLayout(layout, 1, 0)
+        main_layout.addWidget(accept_btn)
+        window.setLayout(main_layout)
 
         self.app.logger.info('Build ask password ui')
         accept_btn.clicked.connect(lambda: self.app.load_configuration({
             'ui': window,
             'field': password_field
         }))
+        show_password_checkbox.setChecked(bool(
+            True if self.show_pass else False)
+        )
+        show_password_checkbox.stateChanged.connect(
+            lambda: self.toogle_echo_password({password_field})
+        )
+
         return window.exec_()
 
     def main_ui(self) -> QWidget:
@@ -74,14 +85,16 @@ class Display():
 
         self.main_window.setWindowTitle(self.app.program_name)
         self.connection_list.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.connection_list.customContextMenuRequested.connect(self.context_menu)
+        self.connection_list.customContextMenuRequested.connect(
+            self.context_menu)
 
         file_menu = menu_bar.addMenu('File')
         edit_menu = menu_bar.addMenu('Edition')
 
         self.connection_list.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
         self.connection_list.itemClicked.connect(self.app.define_current_item)
-        self.connection_list.itemDoubleClicked.connect(self.app.open_ssh_window)
+        self.connection_list.itemDoubleClicked.connect(
+            self.app.open_ssh_window)
 
         label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
 
@@ -108,7 +121,8 @@ class Display():
             exit_action
         ])
 
-        edit_action.triggered.connect(lambda: self.add_edit_connection_ui('edit'))
+        edit_action.triggered.connect(
+            lambda: self.add_edit_connection_ui('edit'))
         delete_action.triggered.connect(self.delete_ui)
         self.add_actions(edit_menu, [
             edit_action,
@@ -129,7 +143,7 @@ class Display():
         delete_btn.clicked.connect(self.delete_ui)
 
         self.main_window.show()
-        self.main_window.move(0,0)
+        self.main_window.move(0, 0)
         self.app.logger.info('Build main ui')
 
         return self.main_window
@@ -143,8 +157,10 @@ class Display():
         edit_action = QAction("Edit connection")
         delete_action = QAction("Delete connection")
 
-        add_action.triggered.connect(lambda: self.add_edit_connection_ui('add'))
-        edit_action.triggered.connect(lambda: self.add_edit_connection_ui('edit'))
+        add_action.triggered.connect(
+            lambda: self.add_edit_connection_ui('add'))
+        edit_action.triggered.connect(
+            lambda: self.add_edit_connection_ui('edit'))
         delete_action.triggered.connect(lambda: self.delete_ui())
 
         self.add_actions(menu, [
@@ -177,16 +193,17 @@ class Display():
         ip_field = QLineEdit(data['ip'] if data else None)
         port_field = QLineEdit(data['port'] if data else '22')
         password_field = QLineEdit(data['password'] if data else None)
-        show_password_btn = QPushButton('show password') if mode == 'edit' else None
+        show_password_checkbox = QCheckBox('show password')
         edit_add_btn = QPushButton('add' if mode == 'add' else 'edit')
 
-        password_field.setEchoMode(QLineEdit.Password)
-        password_field.textChanged.connect(lambda: self.toogle_echo_password(password_field))
+        password_field.setEchoMode(
+            QLineEdit.Normal if self.show_pass else QLineEdit.Password)
 
-        if show_password_btn is not None:
-            show_password_btn.clicked.connect(
-                lambda: self.toogle_echo_password(password_field, 2000)
-            )
+        show_password_checkbox.setChecked(bool(
+            True if self.show_pass else False)
+        )
+        show_password_checkbox.stateChanged.connect(
+            lambda: self.toogle_echo_password({password_field}))
 
         self.set_regex(
             "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
@@ -206,18 +223,18 @@ class Display():
         ])
 
         main_layout.addLayout(form_layout)
-        main_layout.addWidget(show_password_btn) if mode == 'edit' else None
+        main_layout.addWidget(show_password_checkbox)
         main_layout.addWidget(edit_add_btn)
 
         edit_add_btn.clicked.connect(lambda: self.app.add_edit_connection_process({
-                "ui": window,
-                "uuid": data['uuid'] if data else None,
-                "name": name_field,
-                "username": username_field,
-                "ip": ip_field,
-                "port": port_field,
-                "password": password_field
-            }))
+            "ui": window,
+            "uuid": data['uuid'] if data else None,
+            "name": name_field,
+            "username": username_field,
+            "ip": ip_field,
+            "port": port_field,
+            "password": password_field
+        }))
 
         window.setLayout(main_layout)
         log_line = f'Build {mode} ssh connection ui '
@@ -296,11 +313,12 @@ class Display():
 
         auto_save_checkbox.setChecked(bool(
             True if self.app.config['autoSave'] == 'True' else False)
-            )
+        )
 
         auto_save_checkbox.stateChanged.connect(lambda:
-        self.app.toogle_auto_save(auto_save_checkbox)
-        )
+                                                self.app.toogle_auto_save(
+                                                    auto_save_checkbox)
+                                                )
         delete_conf_btn.clicked.connect(lambda: self.delete_ui(True))
         change_password_btn.clicked.connect(self.change_password_ui)
         dark_theme.clicked.connect(lambda: self.set_style(dark_theme.text()))
@@ -322,13 +340,15 @@ class Display():
         top_layout.addLayout(right_layout)
 
         shell_choice = QLineEdit(self.app.config['shell'])
-        shell_choice.textEdited.connect(lambda: self.app.change_shell_emulator(shell_choice))
+        shell_choice.textEdited.connect(
+            lambda: self.app.change_shell_emulator(shell_choice))
         bottom_layout.addRow(
             'Terminal emulator', shell_choice
         )
 
         main_layout.addLayout(top_layout, 0, 0)
-        main_layout.addLayout(bottom_layout, 1, 0, QtCore.Qt.AlignmentFlag.AlignTop)
+        main_layout.addLayout(bottom_layout, 1, 0,
+                              QtCore.Qt.AlignmentFlag.AlignTop)
         window.setLayout(main_layout)
         self.app.logger.info('Build settings ui')
         return window.exec_()
@@ -352,11 +372,19 @@ class Display():
         password_field.setPlaceholderText('Your password')
         re_password_field.setPlaceholderText('Retype password')
         validate_btn = QPushButton('Validate')
-        password_field.setEchoMode(QLineEdit.Password)
-        re_password_field.setEchoMode(QLineEdit.Password)
+        show_password_checkbox = QCheckBox('Show password')
 
-        password_field.textEdited.connect(lambda: self.toogle_echo_password(password_field, 3000))
-        re_password_field.textChanged.connect(lambda: self.toogle_echo_password(re_password_field, 3000))
+        password_field.setEchoMode(
+            QLineEdit.Normal if self.show_pass else QLineEdit.Password)
+        re_password_field.setEchoMode(
+            QLineEdit.Normal if self.show_pass else QLineEdit.Password)
+
+        show_password_checkbox.setChecked(bool(
+            True if self.show_pass else False)
+        )
+
+        show_password_checkbox.stateChanged.connect(
+            lambda: self.toogle_echo_password({password_field, re_password_field}))
 
         validate_btn.clicked.connect(
             lambda: self.app.set_password({
@@ -369,6 +397,7 @@ class Display():
         self.add_widgets(layout, [
             password_field,
             re_password_field,
+            show_password_checkbox,
             validate_btn
         ])
 
@@ -386,11 +415,12 @@ class Display():
         window.setText("""
             <div>{0} - version {1}</div>
             <div>2021 - {2}</div>
+            <div>Author: <a href="https://github.com/Crash-Zeus">Crash-Zeus</a></div>
         """.format(
             self.app.program_name,
             self.app.version,
             (datetime.now()).year
-            ))
+        ))
         window.resize(100, 100)
         self.app.logger.info('Build about ui')
         return window.exec_()
@@ -405,7 +435,7 @@ class Display():
                 for entrie in self.app.config['entries']:
                     item = QListWidgetItem(entrie['name'])
                     item.setData(999, entrie['uuid'])
-                    item.setToolTip('IP : '+ entrie['ip'])
+                    item.setToolTip('IP : ' + entrie['ip'])
                     self.connection_list.addItem(item)
         except Exception:
             log = traceback.format_exc()
@@ -414,15 +444,21 @@ class Display():
         self.connection_list.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
         self.app.logger.info('Refresh connection list')
 
-    def toogle_echo_password(self, item: QLineEdit, msec=500) -> None:
+    def toogle_echo_password(self, items: dict) -> None:
         """
             Toogle echo mode for item
-
-            Password mode to normal mode for msec time
         """
-        if item.echoMode() == QLineEdit.Password:
-            item.setEchoMode(QLineEdit.Normal)
-        return QtCore.QTimer.singleShot(msec, lambda: item.setEchoMode(QLineEdit.Password))
+        if self.show_pass:
+            mode = QLineEdit.Password
+            self.show_pass = False
+        else:
+            mode = QLineEdit.Normal
+            self.show_pass = True
+
+        for item in items:
+            item.setEchoMode(mode)
+
+        return None
 
     def notify(self, text: str, type: str) -> QMessageBox:
         """
@@ -459,7 +495,7 @@ class Display():
         for widget in widgets:
             layout.addWidget(widget)
         return layout
-    
+
     def add_actions(self, menu: QMenuBar, actions: list) -> QMenuBar:
         """
             Add multiple action to QmenuBar from list
@@ -480,15 +516,18 @@ class Display():
             palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
             palette.setColor(QtGui.QPalette.WindowText, Qt.white)
             palette.setColor(QtGui.QPalette.Base, QtGui.QColor(35, 35, 35))
-            palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
-            palette.setColor(QtGui.QPalette.ToolTipBase, QtGui.QColor(25, 25, 25))
+            palette.setColor(QtGui.QPalette.AlternateBase,
+                             QtGui.QColor(53, 53, 53))
+            palette.setColor(QtGui.QPalette.ToolTipBase,
+                             QtGui.QColor(25, 25, 25))
             palette.setColor(QtGui.QPalette.ToolTipText, Qt.white)
             palette.setColor(QtGui.QPalette.Text, Qt.white)
             palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
             palette.setColor(QtGui.QPalette.ButtonText, Qt.white)
             palette.setColor(QtGui.QPalette.BrightText, Qt.red)
             palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
-            palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
+            palette.setColor(QtGui.QPalette.Highlight,
+                             QtGui.QColor(42, 130, 218))
             palette.setColor(QtGui.QPalette.HighlightedText, Qt.black)
         else:
             palette = self.app.default_palette
