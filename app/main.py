@@ -264,7 +264,7 @@ class Encryptzia(QApplication):
                     "autoSave": "True",
                     "sshTimeout": "10",
                     "uiTheme": "Light",
-                    "shell": "xterm",
+                    "shell": "xterm -fg white -bg black -fa 'DejaVu Sans Mono' -fs 12",
                     "entries": []
                 }
                 encrypted = self.fernet.encrypt(

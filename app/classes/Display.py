@@ -163,6 +163,7 @@ class Display():
             - QFormLayout
         """
         window = QDialog()
+        window.setWindowTitle(mode + ' connection')
         data = None
 
         if mode == 'edit' and self.app.current_selected:
