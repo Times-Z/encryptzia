@@ -13,7 +13,7 @@ RUN apt-get update \
                         python3-pip \
                         python3-pyqt5 \
                         sudo \
-                        ssh \
+                        openssh-client \
                         xterm \
                         && rm -rf /var/lib/apt/lists/* \
                         && pip3 install --no-cache-dir cryptography pytest-qt \
@@ -32,8 +32,5 @@ RUN apt-get update \
                         && chmod +x /usr/bin/encryptzia
 
 WORKDIR /var/lib/encryptzia
-
-EXPOSE 8080
-EXPOSE 5678
 
 CMD [ "encryptzia" ]

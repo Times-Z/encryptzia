@@ -34,7 +34,7 @@ class Encryptzia(QApplication):
     def __init__(self, sys_argv):
         super(Encryptzia, self).__init__(sys_argv)
         self.program_name = 'Encryptzia'
-        self.version = "0.1.0"
+        self.version = (open("version.dat", "r")).read()
         self.default_palette = QtGui.QGuiApplication.palette()
         self.root_path = os.path.dirname(os.path.realpath(__file__))
         self.log_path = '/var/log/encryptzia.log'
