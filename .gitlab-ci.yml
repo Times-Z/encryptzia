@@ -97,13 +97,13 @@ release:
     - |- 
         release_id=$(curl \
           -X POST \
-          -u "Crash-Zeus:$GITHUB_TOKEN" \
+          -u "Crash-Zeus:${GITHUB_TOKEN}" \
           -H "Accept: application/vnd.github.v3+json" \
           https://api.github.com/repos/Crash-Zeus/encryptzia/releases \
           -d '{"tag_name":"$VERSION"}' | jq .id)
 
         curl \
-          -u "Crash-Zeus:$GITHUB_TOKEN" \
+          -u "Crash-Zeus:${GITHUB_TOKEN}" \
           -X POST \
           -H "Accept: application/vnd.github.v3+json" \
           -H "Content-Type: application/vnd.debian.binary-package" \
@@ -111,7 +111,7 @@ release:
           https://uploads.github.com/repos/Crash-Zeus/encryptzia/releases/$release_id/assets?name=Encryptzia.deb | jq .state
 
         curl \
-          -u "Crash-Zeus:$GITHUB_TOKEN" \
+          -u "Crash-Zeus:${GITHUB_TOKEN}" \
           -X POST \
           -H "Accept: application/vnd.github.v3+json" \
           -H "Content-Type: application/x-zstd" \
