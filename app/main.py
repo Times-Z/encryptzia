@@ -34,9 +34,10 @@ class Encryptzia(QApplication):
     def __init__(self, sys_argv):
         super(Encryptzia, self).__init__(sys_argv)
         self.program_name = 'Encryptzia'
-        self.version = (open("version.dat", "r")).read()
         self.default_palette = QtGui.QGuiApplication.palette()
         self.root_path = os.path.dirname(os.path.realpath(__file__))
+        with open(self.root_path + "/version.dat", "r") as f:
+            self.version = f.read()
         self.log_path = '/var/log/encryptzia.log'
         self.config_path = os.environ.get(
             'HOME') + '/.config/encryptzia/user.json'
@@ -55,21 +56,24 @@ class Encryptzia(QApplication):
         """
             Run the program
         """
-        first_set = self.check_config()
-        if first_set:
-            self.load_configuration({}, True)
-        else:
+        config_exist = self.check_config()
+        if config_exist:
             self.display.ask_password_ui()
+        else:
+            self.display.change_password_ui(True)
+            self.create_config()
+            self.load_configuration({}, True)
         self.display.set_style(self.config['uiTheme'], True)
         return self.display.main_ui()
 
     def check_config(self) -> bool:
         """
-            Check the configuration
-
-            (to do : check running program)
+            Check if the configuration exist
         """
-        return self.create_config()
+        if not os.path.isfile(self.config_path):
+            self.logger.warn('config path not existing' + self.config_path)
+            return False
+        return True
 
     def gen_one_time_key(self, passwd: str) -> bytes:
         """
@@ -86,6 +90,7 @@ class Encryptzia(QApplication):
             backend=default_backend()
         )
         key = base64.urlsafe_b64encode(kdf.derive(password))
+        self.fernet = Fernet(key)
         self.logger.info('Gen one time key')
         return key
 
@@ -113,8 +118,7 @@ class Encryptzia(QApplication):
         """
         if not first_set:
             passwd = (params.get('field')).text()
-            key = self.gen_one_time_key(passwd)
-            self.fernet = Fernet(key)
+            self.gen_one_time_key(passwd)
         try:
             with open(self.config_path, "rb") as f:
                 data = f.read()
@@ -247,47 +251,41 @@ class Encryptzia(QApplication):
                 break
         return data
 
-    def create_config(self) -> bool:
+    def create_config(self) -> dict:
         """
-            Create configuration if not exist
+            Create configuration
         """
-        created = False
         if not os.path.exists(os.path.dirname(self.config_path)):
             self.logger.info(
                 'Creating ' + str(os.path.dirname(self.config_path)))
             os.makedirs(os.path.dirname(self.config_path))
-            created = True
-        if not os.path.isfile(self.config_path):
-            self.display.change_password_ui(True)
-            try:
-                self.config = {
-                    "autoSave": "True",
-                    "sshTimeout": "10",
-                    "uiTheme": "Light",
-                    "shell": "xterm -fg white -bg black -fa 'DejaVu Sans Mono' -fs 12",
-                    "entries": []
-                }
-                encrypted = self.fernet.encrypt(
-                    bytes(json.dumps(self.config), encoding='utf-8')
-                )
-            except Exception:
-                log = traceback.format_exc()
-                self.logger.crit(log)
-                self.logger.crit('No password specified, exiting')
-                exit(1)
-            with open(self.config_path, "wb") as f:
-                f.write(encrypted)
-            created = True
-            self.logger.info('Creating ' + self.config_path)
-        return created
+        try:
+            self.config = {
+                "autoSave": "True",
+                "sshTimeout": "10",
+                "uiTheme": "Light",
+                "shell": "xterm -fg white -bg black -fa 'DejaVu Sans Mono' -fs 12",
+                "entries": []
+            }
+            encrypted = self.fernet.encrypt(
+                bytes(json.dumps(self.config), encoding='utf-8')
+            )
+        except Exception:
+            log = traceback.format_exc()
+            self.logger.crit(log)
+            self.logger.crit('No password specified, exiting')
+            exit(1)
+        with open(self.config_path, "wb") as f:
+            f.write(encrypted)
+        self.logger.info('Creating ' + self.config_path)
+        return self.config
 
     def set_password(self, params: dict):
         """
             Set or edit the main password of app
         """
         if (params.get('password')).text() == (params.get('repassword')).text():
-            key = self.gen_one_time_key(params.get('password').text())
-            self.fernet = Fernet(key)
+            self.gen_one_time_key(params.get('password').text())
             if hasattr(self, 'config'):
                 self.save(False)
                 self.display.notify('Password changed', 'ok')

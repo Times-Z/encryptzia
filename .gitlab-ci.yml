@@ -55,11 +55,11 @@ build-arch:
     stage: Other Build
     image: archlinux:base
     before_script:
-      - pacman -Sy && pacman -S --noconfirm --needed binutils wget unzip pkgfile fakeroot tar
+      - pacman -Sy && pacman -S --noconfirm --needed binutils wget unzip pkgfile fakeroot tar glibc
       - wget -O debtap.zip https://github.com/helixarch/debtap/archive/refs/tags/3.4.2.zip
       - unzip debtap.zip && mv ./debtap-3.4.2/debtap /usr/local/bin
     script:
-      - cd .cache && debtap -u && debtap -Q encryptzia.deb
+      - cd .cache && debtap -u && debtap -QT encryptzia.deb
     cache:
       key:
         files:
@@ -69,6 +69,14 @@ build-arch:
       paths:
         - .cache/encryptzia-${VERSION}-1-x86_64.pkg.tar.zst
       expire_in: 20 minutes
+
+unit-test:
+  stage: Tests
+  image: registry.jonas.domains/timesz/encryptzia:stable
+  variables:
+    QT_QPA_PLATFORM: "offscreen"
+  script:
+    - cd app/tests && pytest --color=yes --verbosity=1 unit_test.py
 
 install-debian:
     stage: Tests
