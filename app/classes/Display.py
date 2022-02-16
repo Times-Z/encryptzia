@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-import traceback
-from datetime import datetime
-
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtGui import QRegExpValidator, QCursor
-from PyQt5.QtCore import Qt
+from threading import Thread
 from PyQt5.QtWidgets import (QAction, QApplication, QCheckBox, QDialog,
                              QFormLayout, QGridLayout, QHBoxLayout, QLabel,
                              QLayout, QLineEdit, QListWidget, QListWidgetItem,
                              QMenu, QMenuBar, QMessageBox, QPushButton, QRadioButton,
                              QSpacerItem, QVBoxLayout, QWidget)
-
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QRegExpValidator, QCursor
+from PyQt5 import QtCore, QtGui
+from datetime import datetime
 
 class Display():
     """
@@ -18,9 +16,10 @@ class Display():
         - Used for display management
     """
 
-    def __init__(self, app: QApplication):
+    def __init__(self, app):
         self.app = app
-        self.show_pass = False
+        self.current_selected: QListWidgetItem = None
+        self.show_pass: bool = False
 
     def ask_password_ui(self) -> QDialog:
         """
@@ -50,26 +49,26 @@ class Display():
         main_layout.addWidget(accept_btn)
         window.setLayout(main_layout)
 
-        self.app.logger.info('Build ask password ui')
-        accept_btn.clicked.connect(lambda: self.app.load_configuration({
-            'ui': window,
-            'field': password_field
-        }))
+        accept_btn.clicked.connect(
+            lambda: self.wrapper_load_configuration(password_field.text(), window))
+
         show_password_checkbox.setChecked(bool(
             True if self.show_pass else False)
         )
+
         show_password_checkbox.stateChanged.connect(
             lambda: self.toogle_echo_password({password_field})
         )
 
+        self.app.logger.info('Build ask password ui')
         return window.exec_()
 
     def main_ui(self) -> QWidget:
         """
             Build main window ui
             - Qwidget
+                - QMenuBar
             - QGridLayout
-            - QMenuBar
             - QListWidget
         """
         self.main_window = QWidget()
@@ -92,9 +91,9 @@ class Display():
         edit_menu = menu_bar.addMenu('Edition')
 
         self.connection_list.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
-        self.connection_list.itemClicked.connect(self.app.define_current_item)
+        self.connection_list.itemClicked.connect(self.define_current_item)
         self.connection_list.itemDoubleClicked.connect(
-            self.app.open_ssh_window)
+            self.wrapper_open_ssh_window)
 
         label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
 
@@ -114,7 +113,7 @@ class Display():
         edit_action = QAction('Edit selected connection', self.app)
         delete_action = QAction('Delete selected connection', self.app)
 
-        save_action.triggered.connect(lambda: self.app.save(True))
+        save_action.triggered.connect(lambda: self.wrapper_save(True))
         exit_action.triggered.connect(QtCore.QCoreApplication.quit)
         self.add_actions(file_menu, [
             save_action,
@@ -148,30 +147,7 @@ class Display():
 
         return self.main_window
 
-    def context_menu(self) -> QAction:
-        """
-            Build context menu with actions
-        """
-        menu = QMenu(self.main_window)
-        add_action = QAction("Add connection")
-        edit_action = QAction("Edit connection")
-        delete_action = QAction("Delete connection")
-
-        add_action.triggered.connect(
-            lambda: self.add_edit_connection_ui('add'))
-        edit_action.triggered.connect(
-            lambda: self.add_edit_connection_ui('edit'))
-        delete_action.triggered.connect(lambda: self.delete_ui())
-
-        self.add_actions(menu, [
-            add_action,
-            edit_action,
-            delete_action
-        ])
-
-        return menu.exec_(QCursor.pos())
-
-    def add_edit_connection_ui(self, mode='add') -> QDialog:
+    def add_edit_connection_ui(self, mode: str = 'add') -> QDialog:
         """
             Build add and edit connection ui
             - QDialog
@@ -182,8 +158,8 @@ class Display():
         window.setWindowTitle(mode + ' connection')
         data = None
 
-        if mode == 'edit' and self.app.current_selected:
-            data = self.app.get_data_by_item(self.app.current_selected)
+        if mode == 'edit' and self.current_selected:
+            data = self.app.get_data_by_item(self.current_selected.data(999))
 
         main_layout = QVBoxLayout()
         form_layout = QFormLayout()
@@ -226,7 +202,7 @@ class Display():
         main_layout.addWidget(show_password_checkbox)
         main_layout.addWidget(edit_add_btn)
 
-        edit_add_btn.clicked.connect(lambda: self.app.add_edit_connection_process({
+        edit_add_btn.clicked.connect(lambda: self.wrapper_add_edit_connection_process({
             "ui": window,
             "uuid": data['uuid'] if data else None,
             "name": name_field,
@@ -237,17 +213,17 @@ class Display():
         }))
 
         window.setLayout(main_layout)
-        log_line = f'Build {mode} ssh connection ui '
+        log_line = f'Build {mode} ssh connection ui'
         if data is not None:
-            log_line += f'for item ' + data['uuid']
-        if mode == 'edit' and self.app.current_selected is None:
+            log_line += f' for item ' + data['uuid']
+        if mode == 'edit' and self.current_selected is None:
             return window.destroy()
         self.app.logger.info(
             log_line
         )
         return window.exec_()
 
-    def delete_ui(self, delete_all=False) -> None:
+    def delete_ui(self, delete_all: bool = False) -> None:
         """
             Build delete connection or delete configuration ui
             - QMessageBox
@@ -258,8 +234,8 @@ class Display():
         window.addButton(QMessageBox.Yes)
         window.addButton(QMessageBox.No)
         if not delete_all:
-            if self.app.current_selected is not None:
-                item = self.app.current_selected
+            if self.current_selected is not None:
+                item = self.current_selected
                 window.setText("""
                 <div style="color:red">Deleting {0}</div>
                 <div>Are you sure ?</div>
@@ -269,7 +245,7 @@ class Display():
 
                 self.app.logger.info('Build delete ssh warning ui')
                 result = window.exec_()
-                self.app.delete_connection_process(result, item)
+                self.app.delete_connection_process(result, item.data(999))
                 return self.refresh_connection_list()
 
         window.setText("""
@@ -280,7 +256,7 @@ class Display():
         self.app.logger.info('Build delete config warning ui')
         result = window.exec_()
         self.app.delete_config_process(result)
-        return self.refresh_connection_list()
+        return QtCore.QCoreApplication.quit()
 
     def settings_ui(self) -> QDialog:
         """
@@ -317,7 +293,7 @@ class Display():
 
         auto_save_checkbox.stateChanged.connect(lambda:
                                                 self.app.toogle_auto_save(
-                                                    auto_save_checkbox)
+                                                    auto_save_checkbox.isChecked())
                                                 )
         delete_conf_btn.clicked.connect(lambda: self.delete_ui(True))
         change_password_btn.clicked.connect(self.change_password_ui)
@@ -341,7 +317,7 @@ class Display():
 
         shell_choice = QLineEdit(self.app.config['shell'])
         shell_choice.textEdited.connect(
-            lambda: self.app.change_shell_emulator(shell_choice))
+            lambda: self.app.change_shell_emulator(shell_choice.text(), shell_choice.isModified()))
         bottom_layout.addRow(
             'Terminal emulator', shell_choice
         )
@@ -353,7 +329,7 @@ class Display():
         self.app.logger.info('Build settings ui')
         return window.exec_()
 
-    def change_password_ui(self, first_set=False) -> QDialog:
+    def change_password_ui(self, first_set: bool = False) -> QDialog:
         """
             Build change password ui
             - QDialog
@@ -387,11 +363,8 @@ class Display():
             lambda: self.toogle_echo_password({password_field, re_password_field}))
 
         validate_btn.clicked.connect(
-            lambda: self.app.set_password({
-                "ui": window,
-                "password": password_field,
-                "repassword": re_password_field
-            })
+            lambda: self.wrapper_set_password(
+                password_field, re_password_field, window)
         )
 
         self.add_widgets(layout, [
@@ -425,22 +398,40 @@ class Display():
         self.app.logger.info('Build about ui')
         return window.exec_()
 
+    def context_menu(self) -> QAction:
+        """
+            Build context menu with actions
+        """
+        menu = QMenu(self.main_window)
+        add_action = QAction("Add connection")
+        edit_action = QAction("Edit connection")
+        delete_action = QAction("Delete connection")
+
+        add_action.triggered.connect(
+            lambda: self.add_edit_connection_ui('add'))
+        edit_action.triggered.connect(
+            lambda: self.add_edit_connection_ui('edit'))
+        delete_action.triggered.connect(lambda: self.delete_ui())
+
+        self.add_actions(menu, [
+            add_action,
+            edit_action,
+            delete_action
+        ])
+
+        return menu.exec_(QCursor.pos())
+
     def refresh_connection_list(self) -> None:
         """
             Clear and load QListWidgetItems for main window
         """
         self.connection_list.clear()
-        try:
-            if self.app.config is not None:
-                for entrie in self.app.config['entries']:
-                    item = QListWidgetItem(entrie['name'])
-                    item.setData(999, entrie['uuid'])
-                    item.setToolTip('IP : ' + entrie['ip'])
-                    self.connection_list.addItem(item)
-        except Exception:
-            log = traceback.format_exc()
-            self.logger.crit(log)
-            exit(1)
+        if self.app.config is not None:
+            for entrie in self.app.config['entries']:
+                item = QListWidgetItem(entrie['name'])
+                item.setData(999, entrie['uuid'])
+                item.setToolTip('IP : ' + entrie['ip'])
+                self.connection_list.addItem(item)
         self.connection_list.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
         self.app.logger.info('Refresh connection list')
 
@@ -504,7 +495,7 @@ class Display():
             menu.addAction(action)
         return menu
 
-    def set_style(self, theme: str, init=False) -> QtGui.QPalette:
+    def set_style(self, theme: str, init: bool = False) -> QtGui.QPalette:
         """
             Set application style from configuration
 
@@ -535,7 +526,7 @@ class Display():
         self.app.logger.info('Set palette ' + theme)
         if not init:
             if self.app.config['autoSave'] == "True":
-                self.app.save(False)
+                self.wrapper_save(False)
         return self.app.setPalette(palette)
 
     def set_regex(self, regex: str, input: QLineEdit) -> QLineEdit:
@@ -546,3 +537,61 @@ class Display():
         input_validator = QRegExpValidator(reg_ex, input)
         input.setValidator(input_validator)
         return input
+
+    def define_current_item(self, item: QListWidgetItem) -> QListWidgetItem:
+        """
+            Store last item clicked in a variable
+        """
+        self.current_selected = item
+        return self.current_selected
+
+    def wrapper_load_configuration(self, password: str, ui: QDialog) -> bool:
+        """
+            Passthrough to Encryptzia class
+            Load config and close window
+        """
+        self.app.load_configuration(password)
+        return ui.close()
+
+    def wrapper_open_ssh_window(self, item: QListWidgetItem) -> Thread:
+        """
+            Passthrough to Encryptzia class
+            Get data by item
+            Open ssh terminal on a thread
+        """
+        data = self.app.get_data_by_item(item.data(999))
+        return self.app.open_ssh_window(data)
+
+    def wrapper_save(self, notify: bool = True) -> bool:
+        if self.app.save():
+            if notify:
+                self.notify('Saved', 'ok')
+            return True
+        else:
+            return False
+
+    def wrapper_add_edit_connection_process(self, params: dict) -> bool:
+        data = {
+            "uuid": params.get('uuid') if params.get('uuid') else None,
+            "name": params.get('name').text(),
+            "username": params.get('username').text(),
+            "ip": params.get('ip').text(),
+            "port": (params.get('port').text()),
+            "password": params.get('password').text()
+        }
+
+        self.app.add_edit_connection_process(data)
+        self.refresh_connection_list()
+        return (params.get('ui').close())
+
+    def wrapper_set_password(self, password: QLineEdit, repassword: QLineEdit, ui: QDialog) -> bool:
+        set = self.app.set_password(password.text(), repassword.text())
+        if not set:
+            self.notify('Password not match', 'error')
+            return False
+        if hasattr(self.app, 'config'):
+            self.wrapper_save(False)
+            self.notify('Password changed', 'ok')
+        else:
+            self.notify('Password set', 'ok')
+        return ui.close()
