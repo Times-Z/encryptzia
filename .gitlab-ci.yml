@@ -1,7 +1,8 @@
 # Etapes du CI/CD
 stages:
-  - Base Build
-  - Other Build
+  - PreBuild
+  - BaseBuild
+  - OtherDistroBuild
   - Tests
   - Release
   - Github
@@ -11,8 +12,18 @@ variables:
   DEB_PATH: ".cache/encryptzia.deb"
   ARCH_PATH: ".cache/encryptzia-${VERSION}-1-x86_64.pkg.tar.zst"
 
-build-debian:
-    stage: Base Build
+
+run:unit-test:
+  stage: PreBuild
+  image: registry.jonas.domains/timesz/encryptzia:stable
+  variables:
+    QT_QPA_PLATFORM: "offscreen"
+  script:
+    - ls -alt /tmp
+    - cd app/tests && pytest --color=yes --cache-clear --setup-show --full-trace --verbosity=1 --assert=plain unit_test.py
+
+build:debian:
+    stage: BaseBuild
     image: debian:10
     cache:
       key:
@@ -40,8 +51,8 @@ build-debian:
       - |-
         [ -f $DEB_PATH ] && echo "Build completed" || exit 1
 
-build-docker-dev:
-    stage: Base Build
+build:docker:
+    stage: BaseBuild
     image: docker:stable
     script:
       - docker build -t "$CI_REGISTRY_IMAGE:stable" .
@@ -51,8 +62,8 @@ build-docker-dev:
       changes:
         - Dockerfile
 
-build-arch:
-    stage: Other Build
+build:archLinux:
+    stage: OtherDistroBuild
     image: archlinux:base
     before_script:
       - pacman -Sy && pacman -S --noconfirm --needed binutils wget unzip pkgfile fakeroot tar glibc
@@ -69,32 +80,25 @@ build-arch:
       paths:
         - .cache/encryptzia-${VERSION}-1-x86_64.pkg.tar.zst
       expire_in: 20 minutes
+    needs: ["build:debian"]
 
-unit-test:
-  stage: Tests
-  image: registry.jonas.domains/timesz/encryptzia:stable
-  variables:
-    QT_QPA_PLATFORM: "offscreen"
-  script:
-    - cd app/tests && pytest --color=yes --verbosity=1 unit_test.py
-
-install-debian:
+install:debian:
     stage: Tests
     image: debian:10
     script:
       - apt-get update
       - apt-get install ./$DEB_PATH -y
-    needs: ["build-debian"]
+    needs: ["build:debian"]
 
-install-arch:
+install-archLinux:
     stage: Tests
     image: archlinux:base
     script:
       - pacman -Sy
       - pacman -U --noconfirm $ARCH_PATH
-    needs: ["build-arch"]
+    needs: ["build:archLinux"]
 
-release:
+deploy:release:
   stage: Release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   rules:
@@ -133,7 +137,7 @@ release:
     tag_name: '$CI_COMMIT_TAG'
     ref: '$VERSION'
 
-deploy-on-github:
+deploy:github:
   stage: Github
   image: debian:10
   before_script:
