@@ -136,7 +136,7 @@ class Encryptzia(QApplication):
 
             Save data if auto saved is on
         """
-        data: dict[str, str] = {
+        data: dict = {
             "uuid": params.get('uuid') if params.get('uuid') else str(uuid.uuid4()),
             "name": params.get('name'),
             "username": params.get('username'),
@@ -242,7 +242,7 @@ class Encryptzia(QApplication):
         """
         for entrie in self.config['entries']:
             if entrie['uuid'] == itemId:
-                data: dict[str, str] = entrie
+                data: dict = entrie
                 break
         return data
 
@@ -255,7 +255,7 @@ class Encryptzia(QApplication):
                 'Creating ' + str(os.path.dirname(self.CONFIG_PATH)))
             os.makedirs(os.path.dirname(self.CONFIG_PATH))
         try:
-            self.config: dict[str, str] = {
+            self.config: dict = {
                 "autoSave": "True",
                 "sshTimeout": "10",
                 "uiTheme": "Light",
