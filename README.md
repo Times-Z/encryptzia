@@ -1,5 +1,8 @@
 # Encryptzia
 
+![python version](https://img.shields.io/badge/python-3.9%2B-blue)
+![python QT version](https://img.shields.io/badge/pyqt5-5.15.2-blue)
+
 Encryptzia is a Python builed ssh manager.
 
 ![dark theme preview](.images/encryptzia01.png)
