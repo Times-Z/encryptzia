@@ -88,10 +88,10 @@ class Encryptzia(QApplication):
         salt = bytes(str(uuid.getnode()).encode("utf-8")) if (os.environ.get('ENCRYPTZIA_DEV_MODE')
                                                               is None or os.environ.get('ENCRYPTZIA_DEV_MODE') == 'false') else bytes(("devSaltIsNotSecure").encode("utf-8"))
         kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
+            algorithm=hashes.SHA512,
             length=32,
             salt=salt,
-            iterations=100000,
+            iterations=500000,
             backend=default_backend()
         )
         key = base64.urlsafe_b64encode(kdf.derive(password))
