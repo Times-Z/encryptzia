@@ -1,4 +1,4 @@
-FROM debian:11.2
+FROM debian:10.4
 
 ARG DEBIAN_FRONTEND=noninteractive
 ENV XDG_RUNTIME_DIR=/run/user/1000
