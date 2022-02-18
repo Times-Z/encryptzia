@@ -18,6 +18,7 @@ class Display():
 
     def __init__(self, app):
         self.app = app
+        self.default_palette = QtGui.QGuiApplication.palette()
         self.current_selected: QListWidgetItem = None
         self.show_pass: bool = False
 
@@ -82,7 +83,7 @@ class Display():
 
         self.refresh_connection_list()
 
-        self.main_window.setWindowTitle(self.app.program_name)
+        self.main_window.setWindowTitle(self.app.NAME)
         self.connection_list.setContextMenuPolicy(Qt.CustomContextMenu)
         self.connection_list.customContextMenuRequested.connect(
             self.context_menu)
@@ -252,7 +253,7 @@ class Display():
         <div style="color:red">Deleting all the configuration</div>
         <div>Are you sure ?</div>
         <div>{0} exit after pressing yes button</div>
-        """.format(self.app.program_name))
+        """.format(self.app.NAME))
         self.app.logger.info('Build delete config warning ui')
         result = window.exec_()
         self.app.delete_config_process(result)
@@ -390,8 +391,8 @@ class Display():
             <div>2021 - {2}</div>
             <div>Author: <a href="https://github.com/Crash-Zeus">Crash-Zeus</a></div>
         """.format(
-            self.app.program_name,
-            self.app.version,
+            self.app.NAME,
+            self.app.VERSION,
             (datetime.now()).year
         ))
         window.resize(100, 100)
@@ -521,7 +522,7 @@ class Display():
                              QtGui.QColor(42, 130, 218))
             palette.setColor(QtGui.QPalette.HighlightedText, Qt.black)
         else:
-            palette = self.app.default_palette
+            palette = self.default_palette
         self.app.config['uiTheme'] = theme
         self.app.logger.info('Set palette ' + theme)
         if not init:

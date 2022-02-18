@@ -33,23 +33,22 @@ class Encryptzia(QApplication):
 
     def __init__(self, sys_argv):
         super(Encryptzia, self).__init__(sys_argv)
-        self.program_name = 'Encryptzia'
-        self.default_palette = QtGui.QGuiApplication.palette()
-        self.root_path = os.path.dirname(os.path.realpath(__file__))
-        with open(self.root_path + "/version.dat", "r") as f:
-            self.version = f.read()
-        self.log_path = '/var/log/encryptzia.log'
+        self.NAME = 'Encryptzia'
+        self.ROOT_PATH = os.path.dirname(os.path.realpath(__file__))
+        with open(self.ROOT_PATH + "/version.dat", "r") as f:
+            self.VERSION = f.read()
+        self.LOG_PATH = '/var/log/encryptzia.log'
         self.config_path = os.environ.get(
             'HOME') + '/.config/encryptzia/user.json'
         self.display = Display(self)
         self.logger = Logger()
-        self.logger.config(self.log_path)
+        self.logger.config(self.LOG_PATH)
         self.logger.debug('Os : ' + sys.platform)
-        self.logger.debug('Python version ' + str(sys.version_info.major)
-                          + '.' + str(sys.version_info.micro) +
+        self.logger.debug('Python version ' + str(sys.version_info.major) +
                           '.' + str(sys.version_info.minor)
+                          + '.' + str(sys.version_info.micro)
                           )
-        self.logger.info(self.program_name + ' ' + self.version)
+        self.logger.info(self.NAME + ' ' + self.VERSION)
 
     def run(self) -> QWidget:
         """
@@ -86,8 +85,8 @@ class Encryptzia(QApplication):
         """
         password = passwd.encode()
         salt = bytes(str(uuid.getnode()).encode("utf-8")) if (os.environ.get('ENCRYPTZIA_DEV_MODE')
-                                                              is None or os.environ.get('ENCRYPTZIA_DEV_MODE') == 'false') else bytes(("devSaltIsNotSecure").encode("utf-8"))
-        kdf = PBKDF2HMAC(
+                                                                     is None or os.environ.get('ENCRYPTZIA_DEV_MODE') == 'false') else bytes(("devSaltIsNotSecure").encode("utf-8"))
+        kdf: PBKDF2HMAC = PBKDF2HMAC(
             algorithm=hashes.SHA512,
             length=32,
             salt=salt,
@@ -123,8 +122,8 @@ class Encryptzia(QApplication):
             self.gen_one_time_key(password)
         try:
             with open(self.config_path, "rb") as f:
-                data = f.read()
-            self.config = json.loads(self.fernet.decrypt(data))
+                data: bytes = f.read()
+            self.config: dict = json.loads(self.fernet.decrypt(data))
             self.logger.info('Unlocked vault')
         except InvalidToken:
             self.logger.info('Unlocked vault failed')
@@ -177,7 +176,7 @@ class Encryptzia(QApplication):
         """
         if action == QMessageBox.Yes:
             path = Path(self.config_path)
-            if path.parent.absolute() == self.program_name:
+            if path.parent.absolute() == self.NAME:
                 shutil.rmtree(os.environ.get('HOME') + '/.config/encryptzia')
                 self.logger.info(
                     'Removed '+os.environ.get("HOME")+'/.config/encryptzia')
@@ -209,8 +208,8 @@ class Encryptzia(QApplication):
         base_64_password = base64.b64encode(
             bytes(data['password'], "utf-8"))
         command = (
-            self.root_path
-            + '/run.sh'
+            self.ROOT_PATH
+            + '/assets/scripts/ssh.sh'
             + ' ' + data['username']
             + ' ' + data['ip']
             + ' ' + data['port']
@@ -313,6 +312,6 @@ if __name__ == '__main__':
         debugpy.listen(('0.0.0.0', 5678))
         debugpy.wait_for_client()
     app = Encryptzia(sys.argv)
-    app.setWindowIcon(QtGui.QIcon(app.root_path + '/assets/imgs/icon.png'))
+    app.setWindowIcon(QtGui.QIcon(app.ROOT_PATH + '/assets/imgs/icon.png'))
     app.run()
     sys.exit(app.exec_())

@@ -68,7 +68,7 @@ def app():
     app = Encryptzia([])
     app.config_path = '/tmp/' + secrets.token_urlsafe(randint(1, 20)) + '.json'
 
-    print('Encryptzia' + ' version ' + app.version)
+    print('Encryptzia' + ' version ' + app.VERSION)
     print('Conf : ' + app.config_path)
 
     return app
