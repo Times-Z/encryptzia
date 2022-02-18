@@ -38,7 +38,7 @@ class Encryptzia(QApplication):
         with open(self.ROOT_PATH + "/version.dat", "r") as f:
             self.VERSION = f.read()
         self.LOG_PATH = '/var/log/encryptzia.log'
-        self.CONFIG_PATH = os.environ.get(
+        self.config_path = os.environ.get(
             'HOME') + '/.config/encryptzia/user.json'
         self.display = Display(self)
         self.logger = Logger()
@@ -74,8 +74,8 @@ class Encryptzia(QApplication):
         """
             Check if the configuration exist
         """
-        if not os.path.isfile(self.CONFIG_PATH):
-            self.logger.warn('config path not existing' + self.CONFIG_PATH)
+        if not os.path.isfile(self.config_path):
+            self.logger.warn('config path not existing' + self.config_path)
             return False
         return True
 
@@ -105,7 +105,7 @@ class Encryptzia(QApplication):
         try:
             encrypted = self.fernet.encrypt(
                 (json.dumps(self.config)).encode("utf-8"))
-            with open(self.CONFIG_PATH, "wb") as f:
+            with open(self.config_path, "wb") as f:
                 f.write(encrypted)
             self.logger.info('Saved')
             return True
@@ -121,7 +121,7 @@ class Encryptzia(QApplication):
         if password:
             self.gen_one_time_key(password)
         try:
-            with open(self.CONFIG_PATH, "rb") as f:
+            with open(self.config_path, "rb") as f:
                 data: bytes = f.read()
             self.config: dict = json.loads(self.fernet.decrypt(data))
             self.logger.info('Unlocked vault')
@@ -175,14 +175,14 @@ class Encryptzia(QApplication):
             Delete $HOME/.config/encryptzia and exit program
         """
         if action == QMessageBox.Yes:
-            path = Path(self.CONFIG_PATH)
+            path = Path(self.config_path)
             if path.parent.absolute() == self.NAME:
                 shutil.rmtree(os.environ.get('HOME') + '/.config/encryptzia')
                 self.logger.info(
                     'Removed '+os.environ.get("HOME")+'/.config/encryptzia')
             else:
-                os.unlink(self.CONFIG_PATH)
-                self.logger.info('Removed ' + self.CONFIG_PATH)
+                os.unlink(self.config_path)
+                self.logger.info('Removed ' + self.config_path)
             return True
         else:
             return False
@@ -250,10 +250,10 @@ class Encryptzia(QApplication):
         """
             Create configuration
         """
-        if not os.path.exists(os.path.dirname(self.CONFIG_PATH)):
+        if not os.path.exists(os.path.dirname(self.config_path)):
             self.logger.info(
-                'Creating ' + str(os.path.dirname(self.CONFIG_PATH)))
-            os.makedirs(os.path.dirname(self.CONFIG_PATH))
+                'Creating ' + str(os.path.dirname(self.config_path)))
+            os.makedirs(os.path.dirname(self.config_path))
         try:
             self.config = {
                 "autoSave": "True",
@@ -268,7 +268,7 @@ class Encryptzia(QApplication):
         except Exception as e:
             self.logger.crit(str(e))
             sys.exit(1)
-        self.logger.info('Creating ' + self.CONFIG_PATH)
+        self.logger.info('Creating ' + self.config_path)
         return self.config
 
     def set_password(self, password: str, repassword: str):

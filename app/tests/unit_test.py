@@ -66,10 +66,10 @@ def create_payload(app: Encryptzia) -> str:
 @pytest.fixture
 def app():
     app = Encryptzia([])
-    app.CONFIG_PATH = '/tmp/' + secrets.token_urlsafe(randint(1, 20)) + '.json'
+    app.config_path = '/tmp/' + secrets.token_urlsafe(randint(1, 20)) + '.json'
 
     print('Encryptzia' + ' version ' + app.VERSION)
-    print('Conf : ' + app.CONFIG_PATH)
+    print('Conf : ' + app.config_path)
 
     return app
 
@@ -185,14 +185,14 @@ def test_delete_config_process_false(app: Encryptzia):
     create_payload(app)
     result = app.delete_config_process(QMessageBox.No)
     assert type(result) == bool and not result and os.path.exists(
-        app.CONFIG_PATH)
+        app.config_path)
 
 
 def test_delete_config_process_true(app: Encryptzia):
     create_payload(app)
     result = app.delete_config_process(QMessageBox.Yes)
     assert type(result) == bool and result and not os.path.exists(
-        app.CONFIG_PATH)
+        app.config_path)
 
 
 def test_delete_connection_process_true(app: Encryptzia, config_with_entries: dict):
