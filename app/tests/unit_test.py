@@ -12,9 +12,9 @@ from main import Encryptzia
 
 @pytest.fixture(autouse=True)
 def time_between_test():
-    yield
     time.sleep(1)
     gc.collect()
+    yield
 
 
 @pytest.fixture
