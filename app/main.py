@@ -33,15 +33,15 @@ class Encryptzia(QApplication):
 
     def __init__(self, sys_argv):
         super(Encryptzia, self).__init__(sys_argv)
-        self.NAME = 'Encryptzia'
-        self.ROOT_PATH = os.path.dirname(os.path.realpath(__file__))
+        self.NAME: str = 'Encryptzia'
+        self.ROOT_PATH: str = os.path.dirname(os.path.realpath(__file__))
         with open(self.ROOT_PATH + "/version.dat", "r") as f:
-            self.VERSION = f.read()
-        self.LOG_PATH = '/var/log/encryptzia.log'
-        self.config_path = os.environ.get(
+            self.VERSION: str = f.read()
+        self.LOG_PATH: str = '/var/log/encryptzia.log'
+        self.CONFIG_PATH: str = os.environ.get(
             'HOME') + '/.config/encryptzia/user.json'
-        self.display = Display(self)
-        self.logger = Logger()
+        self.display: Display = Display(self)
+        self.logger: Logger = Logger()
         self.logger.config(self.LOG_PATH)
         self.logger.debug('Os : ' + sys.platform)
         self.logger.debug('Python version ' + str(sys.version_info.major) +
@@ -54,7 +54,7 @@ class Encryptzia(QApplication):
         """
             Run the program
         """
-        config_exist = self.check_config()
+        config_exist: bool = self.check_config()
         if config_exist:
             self.display.ask_password_ui()
         else:
@@ -64,7 +64,7 @@ class Encryptzia(QApplication):
         try:
             self.display.set_style(self.config['uiTheme'], True)
         except AttributeError:
-            log = traceback.format_exc()
+            log: str = traceback.format_exc()
             self.logger.crit(log)
             self.logger.crit('No password specified')
             sys.exit(1)
@@ -74,8 +74,8 @@ class Encryptzia(QApplication):
         """
             Check if the configuration exist
         """
-        if not os.path.isfile(self.config_path):
-            self.logger.warn('config path not existing' + self.config_path)
+        if not os.path.isfile(self.CONFIG_PATH):
+            self.logger.warn('config path not existing' + self.CONFIG_PATH)
             return False
         return True
 
@@ -83,8 +83,8 @@ class Encryptzia(QApplication):
         """
             Generate one time key from password to encrypte / decrypte file
         """
-        password = passwd.encode()
-        salt = bytes(str(uuid.getnode()).encode("utf-8")) if (os.environ.get('ENCRYPTZIA_DEV_MODE')
+        password: bytes = passwd.encode()
+        salt: bytes = bytes(str(uuid.getnode()).encode("utf-8")) if (os.environ.get('ENCRYPTZIA_DEV_MODE')
                                                                      is None or os.environ.get('ENCRYPTZIA_DEV_MODE') == 'false') else bytes(("devSaltIsNotSecure").encode("utf-8"))
         kdf: PBKDF2HMAC = PBKDF2HMAC(
             algorithm=hashes.SHA512,
@@ -93,7 +93,7 @@ class Encryptzia(QApplication):
             iterations=500000,
             backend=default_backend()
         )
-        key = base64.urlsafe_b64encode(kdf.derive(password))
+        key: bytes = base64.urlsafe_b64encode(kdf.derive(password))
         self.fernet = Fernet(key)
         self.logger.info('Gen one time key')
         return key
@@ -103,14 +103,14 @@ class Encryptzia(QApplication):
             Save configuration
         """
         try:
-            encrypted = self.fernet.encrypt(
+            encrypted: bytes = self.fernet.encrypt(
                 (json.dumps(self.config)).encode("utf-8"))
-            with open(self.config_path, "wb") as f:
+            with open(self.CONFIG_PATH, "wb") as f:
                 f.write(encrypted)
             self.logger.info('Saved')
             return True
         except Exception:
-            log = traceback.format_exc()
+            log: str = traceback.format_exc()
             self.logger.crit(log)
             return False
 
@@ -121,7 +121,7 @@ class Encryptzia(QApplication):
         if password:
             self.gen_one_time_key(password)
         try:
-            with open(self.config_path, "rb") as f:
+            with open(self.CONFIG_PATH, "rb") as f:
                 data: bytes = f.read()
             self.config: dict = json.loads(self.fernet.decrypt(data))
             self.logger.info('Unlocked vault')
@@ -136,7 +136,7 @@ class Encryptzia(QApplication):
 
             Save data if auto saved is on
         """
-        data = {
+        data: dict[str, str] = {
             "uuid": params.get('uuid') if params.get('uuid') else str(uuid.uuid4()),
             "name": params.get('name'),
             "username": params.get('username'),
@@ -146,7 +146,7 @@ class Encryptzia(QApplication):
         }
 
         if params.get('uuid'):
-            i = self.get_item_config_position(params.get('uuid'))
+            i: int = self.get_item_config_position(params.get('uuid'))
             self.config['entries'][i] = data
         else:
             self.config['entries'].append(data)
@@ -160,7 +160,7 @@ class Encryptzia(QApplication):
             Save data if auto saved is on
         """
         if action == QMessageBox.Yes:
-            i = self.get_item_config_position(uuid)
+            i: int = self.get_item_config_position(uuid)
             del self.config['entries'][i]
             self.logger.info('Deleted entrie number ' + str(i) +
                              ' of ' + str(len(self.config['entries'])))
@@ -175,14 +175,14 @@ class Encryptzia(QApplication):
             Delete $HOME/.config/encryptzia and exit program
         """
         if action == QMessageBox.Yes:
-            path = Path(self.config_path)
+            path: Path = Path(self.CONFIG_PATH)
             if path.parent.absolute() == self.NAME:
                 shutil.rmtree(os.environ.get('HOME') + '/.config/encryptzia')
                 self.logger.info(
                     'Removed '+os.environ.get("HOME")+'/.config/encryptzia')
             else:
-                os.unlink(self.config_path)
-                self.logger.info('Removed ' + self.config_path)
+                os.unlink(self.CONFIG_PATH)
+                self.logger.info('Removed ' + self.CONFIG_PATH)
             return True
         else:
             return False
@@ -193,7 +193,7 @@ class Encryptzia(QApplication):
 
             Used for editing or removing object from configuration
         """
-        i = 0
+        i: int = 0
         for entrie in self.config['entries']:
             if entrie['uuid'] == uuid:
                 break
@@ -205,9 +205,9 @@ class Encryptzia(QApplication):
             Create a thread and open an ssh window on it
         """
         self.logger.info(f'Open {self.config["shell"]} ssh window')
-        base_64_password = base64.b64encode(
+        base_64_password: bytes = base64.b64encode(
             bytes(data['password'], "utf-8"))
-        command = (
+        command: str = (
             self.ROOT_PATH
             + '/assets/scripts/ssh.sh'
             + ' ' + data['username']
@@ -216,7 +216,7 @@ class Encryptzia(QApplication):
             + ' ' + base_64_password.decode("utf-8")
             + ' ' + self.config['sshTimeout']
         )
-        thread = threading.Thread(
+        thread: threading.Thread = threading.Thread(
             target=self.execute_command_on_thread, args=(command, data['uuid'])
         )
         thread.start()
@@ -226,23 +226,23 @@ class Encryptzia(QApplication):
         """
             Execute command and get return code for a subprocess in a thread
         """
-        process = subprocess.Popen(
+        process: subprocess.Popen = subprocess.Popen(
             self.config['shell'] + " -e bash -c '" + command + "';", shell=True
         )
-        thread_name = threading.current_thread().getName()
+        thread_name: str = threading.current_thread().getName()
         self.logger.info(f'{thread_name} running for item {uuid}')
         while process.poll() is None:
             time.sleep(0.1)
         self.logger.info(f'{thread_name} stop with code {str(process.poll())}')
         return process.poll()
 
-    def get_data_by_item(self, itemId: int) -> dict:
+    def get_data_by_item(self, itemId: int) -> dict[str, str]:
         """
             Get data from item by unique id
         """
         for entrie in self.config['entries']:
             if entrie['uuid'] == itemId:
-                data = entrie
+                data: dict[str, str] = entrie
                 break
         return data
 
@@ -250,25 +250,25 @@ class Encryptzia(QApplication):
         """
             Create configuration
         """
-        if not os.path.exists(os.path.dirname(self.config_path)):
+        if not os.path.exists(os.path.dirname(self.CONFIG_PATH)):
             self.logger.info(
-                'Creating ' + str(os.path.dirname(self.config_path)))
-            os.makedirs(os.path.dirname(self.config_path))
+                'Creating ' + str(os.path.dirname(self.CONFIG_PATH)))
+            os.makedirs(os.path.dirname(self.CONFIG_PATH))
         try:
-            self.config = {
+            self.config: dict[str, str] = {
                 "autoSave": "True",
                 "sshTimeout": "10",
                 "uiTheme": "Light",
                 "shell": "xterm -fg white -bg black -fa 'DejaVu Sans Mono' -fs 12",
                 "entries": []
             }
-            saved = self.save()
+            saved: bool = self.save()
             if not saved:
                 raise Exception('No password specified')
         except Exception as e:
             self.logger.crit(str(e))
             sys.exit(1)
-        self.logger.info('Creating ' + self.config_path)
+        self.logger.info('Creating ' + self.CONFIG_PATH)
         return self.config
 
     def set_password(self, password: str, repassword: str):
@@ -285,7 +285,7 @@ class Encryptzia(QApplication):
         """
             Toogle auto save
         """
-        actual = self.config['autoSave']
+        actual: str = self.config['autoSave']
         if checkbox:
             self.config['autoSave'] = "True"
         else:
