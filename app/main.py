@@ -236,7 +236,7 @@ class Encryptzia(QApplication):
         self.logger.info(f'{thread_name} stop with code {str(process.poll())}')
         return process.poll()
 
-    def get_data_by_item(self, itemId: int) -> dict[str, str]:
+    def get_data_by_item(self, itemId: int) -> dict:
         """
             Get data from item by unique id
         """
