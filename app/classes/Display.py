@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+import psutil
 from threading import Thread
 from PyQt5.QtWidgets import (QAction, QApplication, QCheckBox, QDialog,
                              QFormLayout, QGridLayout, QHBoxLayout, QLabel,
@@ -9,6 +11,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QRegExpValidator, QCursor
 from PyQt5 import QtCore, QtGui
 from datetime import datetime
+
 
 class Display():
     """
@@ -386,14 +389,18 @@ class Display():
         """
         window = QMessageBox()
         window.setWindowTitle('About')
+        current_usage = round(psutil.Process(
+            os.getpid()).memory_info().rss / (1024 * 1024))
         window.setText("""
             <div>{0} - version {1}</div>
             <div>2021 - {2}</div>
             <div>Author: <a href="https://github.com/Crash-Zeus">Crash-Zeus</a></div>
+            <div>Current ram usage : {3} mb</div>
         """.format(
             self.app.NAME,
             self.app.VERSION,
-            (datetime.now()).year
+            (datetime.now()).year,
+            str(current_usage)
         ))
         window.resize(100, 100)
         self.app.logger.info('Build about ui')

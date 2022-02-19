@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import base64
+from getopt import getopt
 import json
 import os
 from pathlib import Path
@@ -305,13 +306,36 @@ class Encryptzia(QApplication):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == 'DEBUG':
-        os.environ['DEBUG'] = 'true'
-        import debugpy
-        print('Waiting debug session...')
-        debugpy.listen(('0.0.0.0', 5678))
-        debugpy.wait_for_client()
-    app = Encryptzia(sys.argv)
-    app.setWindowIcon(QtGui.QIcon(app.ROOT_PATH + '/assets/imgs/icon.png'))
-    app.run()
-    sys.exit(app.exec_())
+    argv = sys.argv[1:]
+    try:
+        mode: str = 'gui'
+        debug: bool = False
+        opts, args = getopt(argv, 'm:d:', [
+            "mode=",
+            "debug="
+        ])
+
+        for opt, arg in opts:
+            if opt in ['-m', '--mode']:
+                mode = arg
+            elif opt in ['-d', '--debug']:
+                debug = arg
+
+        if debug:
+            import debugpy
+            print('Waiting debug session...')
+            debugpy.listen(('0.0.0.0', 5678))
+            debugpy.wait_for_client()
+        if mode == 'gui':
+            app = Encryptzia(sys.argv)
+            app.setWindowIcon(QtGui.QIcon(
+                app.ROOT_PATH + '/assets/imgs/icon.png'))
+            app.run()
+            sys.exit(app.exec_())
+        elif mode == 'tui':
+            print('TUI is not currently available')
+            sys.exit(0)
+        raise Exception('Missing argument')
+    except Exception as e:
+        print(e)
+        sys.exit(1)
