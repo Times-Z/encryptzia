@@ -3,4 +3,4 @@
 PATH=$PATH:/usr/local/bin
 touch /var/log/encryptzia.log
 chmod 766 /var/log/encryptzia.log
-pip3 install --quiet --no-cache-dir cryptography
+pip3 install --quiet --no-cache-dir cryptography psutil
