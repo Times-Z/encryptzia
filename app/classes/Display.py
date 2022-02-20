@@ -110,12 +110,12 @@ class Display():
             delete_btn
         ])
 
-        save_action = QAction('Save', self.app)
-        exit_action = QAction('Exit', self.app)
-        settings_action = QAction('Settings', self.app)
-        about_action = QAction('About', self.app)
-        edit_action = QAction('Edit selected connection', self.app)
-        delete_action = QAction('Delete selected connection', self.app)
+        save_action = QAction('Save', self.app.qapp)
+        exit_action = QAction('Exit', self.app.qapp)
+        settings_action = QAction('Settings', self.app.qapp)
+        about_action = QAction('About', self.app.qapp)
+        edit_action = QAction('Edit selected connection', self.app.qapp)
+        delete_action = QAction('Delete selected connection', self.app.qapp)
 
         save_action.triggered.connect(lambda: self.wrapper_save(True))
         exit_action.triggered.connect(QtCore.QCoreApplication.quit)
@@ -509,7 +509,7 @@ class Display():
 
             Default is light theme
         """
-        self.app.setStyle("Fusion")
+        self.app.qapp.setStyle("Fusion")
         if theme == 'Dark':
             palette = QtGui.QPalette()
             palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
@@ -535,7 +535,7 @@ class Display():
         if not init:
             if self.app.config['autoSave'] == "True":
                 self.wrapper_save(False)
-        return self.app.setPalette(palette)
+        return self.app.qapp.setPalette(palette)
 
     def set_regex(self, regex: str, input: QLineEdit) -> QLineEdit:
         """

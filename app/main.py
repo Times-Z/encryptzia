@@ -19,12 +19,12 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import (QApplication, QMessageBox, QWidget)
+from PyQt5.QtWidgets import (QApplication, QWidget)
 
 from classes import Display, Logger
 
 
-class Encryptzia(QApplication):
+class Encryptzia():
     """
         Main class
         - Run the program
@@ -32,8 +32,13 @@ class Encryptzia(QApplication):
         - Do process
     """
 
-    def __init__(self, sys_argv):
-        super(Encryptzia, self).__init__(sys_argv)
+    def __init__(self, sys_argv, mode):
+        if mode == 'gui':
+            self.qapp = QApplication(sys_argv)
+            self.display: Display = Display(self)
+        elif mode == 'tui':
+            print('TUI is not currently available')
+            sys.exit(0)
         self.NAME: str = 'Encryptzia'
         self.ROOT_PATH: str = os.path.dirname(os.path.realpath(__file__))
         with open(self.ROOT_PATH + "/version.dat", "r") as f:
@@ -41,7 +46,6 @@ class Encryptzia(QApplication):
         self.LOG_PATH: str = '/var/log/encryptzia.log'
         self.CONFIG_PATH: str = os.environ.get(
             'HOME') + '/.config/encryptzia/user.json'
-        self.display: Display = Display(self)
         self.logger: Logger = Logger()
         self.logger.config(self.LOG_PATH)
         self.logger.debug('Os : ' + sys.platform)
@@ -327,14 +331,13 @@ if __name__ == '__main__':
             debugpy.listen(('0.0.0.0', 5678))
             debugpy.wait_for_client()
         if mode == 'gui':
-            app = Encryptzia(sys.argv)
-            app.setWindowIcon(QtGui.QIcon(
+            app = Encryptzia(argv, mode)
+            app.qapp.setWindowIcon(QtGui.QIcon(
                 app.ROOT_PATH + '/assets/imgs/icon.png'))
             app.run()
-            sys.exit(app.exec_())
+            sys.exit(app.qapp.exec_())
         elif mode == 'tui':
-            print('TUI is not currently available')
-            sys.exit(0)
+            app = Encryptzia(argv, mode)
         raise Exception('Missing argument')
     except Exception as e:
         print(e)
