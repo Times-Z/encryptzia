@@ -20,7 +20,7 @@ run:unit-test:
     QT_QPA_PLATFORM: "offscreen"
   script:
     - ls -alt /tmp
-    - cd app/tests && pytest --color=yes --cache-clear --setup-show --full-trace --verbosity=1 --assert=plain unit_test.py
+    - cd app/tests && pytest --color=yes --cache-clear --full-trace --verbosity=1 --assert=plain unit_test.py
 
 build:debian:
     stage: BaseBuild

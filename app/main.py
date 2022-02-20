@@ -154,13 +154,13 @@ class Encryptzia(QApplication):
 
         return self.save() if self.config['autoSave'] == 'True' else True
 
-    def delete_connection_process(self, action: int, uuid: str) -> bool:
+    def delete_connection_process(self, action: bool, uuid: str) -> bool:
         """
             Delete connection for connection ui
 
             Save data if auto saved is on
         """
-        if action == QMessageBox.Yes:
+        if action:
             i: int = self.get_item_config_position(uuid)
             del self.config['entries'][i]
             self.logger.info('Deleted entrie number ' + str(i) +
@@ -171,11 +171,11 @@ class Encryptzia(QApplication):
         else:
             return False
 
-    def delete_config_process(self, action: int) -> bool:
+    def delete_config_process(self, action: bool) -> bool:
         """
             Delete $HOME/.config/encryptzia and exit program
         """
-        if action == QMessageBox.Yes:
+        if action:
             path: Path = Path(self.CONFIG_PATH)
             if path.parent.absolute() == self.NAME:
                 shutil.rmtree(os.environ.get('HOME') + '/.config/encryptzia')

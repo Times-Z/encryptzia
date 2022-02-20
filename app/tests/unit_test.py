@@ -5,7 +5,6 @@ import pytest
 import sys
 import os
 import gc
-from PyQt5.QtWidgets import QMessageBox
 sys.path.append("..")
 from main import Encryptzia
 
@@ -183,16 +182,14 @@ def test_toogle_auto_save_false(app: Encryptzia):
 
 def test_delete_config_process_false(app: Encryptzia):
     create_payload(app)
-    result = app.delete_config_process(QMessageBox.No)
-    assert type(result) == bool and not result and os.path.exists(
-        app.CONFIG_PATH)
+    app.delete_config_process(False)
+    assert os.path.exists(app.CONFIG_PATH)
 
 
 def test_delete_config_process_true(app: Encryptzia):
     create_payload(app)
-    result = app.delete_config_process(QMessageBox.Yes)
-    assert type(result) == bool and result and not os.path.exists(
-        app.CONFIG_PATH)
+    app.delete_config_process(True)
+    assert not os.path.exists(app.CONFIG_PATH)
 
 
 def test_delete_connection_process_true(app: Encryptzia, config_with_entries: dict):
@@ -200,7 +197,7 @@ def test_delete_connection_process_true(app: Encryptzia, config_with_entries: di
     excepted = len(config_with_entries['entries'])
     app.config = config_with_entries
     result = app.delete_connection_process(
-        QMessageBox.Yes, 'c0373984-7505-4a20-b683-7ba4663a5ed6')
+        True, 'c0373984-7505-4a20-b683-7ba4663a5ed6')
     assert type(result) == bool and result and (
         len(app.config['entries']) < excepted)
 
@@ -210,7 +207,7 @@ def test_delete_connection_process_false(app: Encryptzia, config_with_entries: d
     excepted = len(config_with_entries['entries'])
     app.config = config_with_entries
     result = app.delete_connection_process(
-        QMessageBox.No, 'c0373984-7505-4a20-b683-7ba4663a5ed6')
+        False, 'c0373984-7505-4a20-b683-7ba4663a5ed6')
     assert type(result) == bool and not result and (
         len(app.config['entries']) == excepted)
 

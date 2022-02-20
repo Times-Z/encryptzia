@@ -2,7 +2,7 @@
 import os
 import psutil
 from threading import Thread
-from PyQt5.QtWidgets import (QAction, QApplication, QCheckBox, QDialog,
+from PyQt5.QtWidgets import (QAction, QCheckBox, QDialog,
                              QFormLayout, QGridLayout, QHBoxLayout, QLabel,
                              QLayout, QLineEdit, QListWidget, QListWidgetItem,
                              QMenu, QMenuBar, QMessageBox, QPushButton, QRadioButton,
@@ -249,7 +249,7 @@ class Display():
 
                 self.app.logger.info('Build delete ssh warning ui')
                 result = window.exec_()
-                self.app.delete_connection_process(result, item.data(999))
+                self.app.delete_connection_process((True if result == QMessageBox.Yes else False), item.data(999))
                 return self.refresh_connection_list()
 
         window.setText("""
@@ -259,8 +259,8 @@ class Display():
         """.format(self.app.NAME))
         self.app.logger.info('Build delete config warning ui')
         result = window.exec_()
-        self.app.delete_config_process(result)
-        return QtCore.QCoreApplication.quit()
+        self.app.delete_config_process((True if result == QMessageBox.Yes else False))
+        return QtCore.QCoreApplication.quit() if result == QMessageBox.Yes else self.refresh_connection_list()
 
     def settings_ui(self) -> QDialog:
         """
