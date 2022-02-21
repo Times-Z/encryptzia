@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import os
+import psutil
 from threading import Thread
-from PyQt5.QtWidgets import (QAction, QApplication, QCheckBox, QDialog,
+from PyQt5.QtWidgets import (QAction, QCheckBox, QDialog,
                              QFormLayout, QGridLayout, QHBoxLayout, QLabel,
                              QLayout, QLineEdit, QListWidget, QListWidgetItem,
                              QMenu, QMenuBar, QMessageBox, QPushButton, QRadioButton,
@@ -10,7 +12,8 @@ from PyQt5.QtGui import QRegExpValidator, QCursor
 from PyQt5 import QtCore, QtGui
 from datetime import datetime
 
-class Display():
+
+class QApp():
     """
         Display class
         - Used for display management
@@ -18,6 +21,7 @@ class Display():
 
     def __init__(self, app):
         self.app = app
+        self.default_palette = QtGui.QGuiApplication.palette()
         self.current_selected: QListWidgetItem = None
         self.show_pass: bool = False
 
@@ -82,7 +86,7 @@ class Display():
 
         self.refresh_connection_list()
 
-        self.main_window.setWindowTitle(self.app.program_name)
+        self.main_window.setWindowTitle(self.app.NAME)
         self.connection_list.setContextMenuPolicy(Qt.CustomContextMenu)
         self.connection_list.customContextMenuRequested.connect(
             self.context_menu)
@@ -106,12 +110,12 @@ class Display():
             delete_btn
         ])
 
-        save_action = QAction('Save', self.app)
-        exit_action = QAction('Exit', self.app)
-        settings_action = QAction('Settings', self.app)
-        about_action = QAction('About', self.app)
-        edit_action = QAction('Edit selected connection', self.app)
-        delete_action = QAction('Delete selected connection', self.app)
+        save_action = QAction('Save', self.app.qapp)
+        exit_action = QAction('Exit', self.app.qapp)
+        settings_action = QAction('Settings', self.app.qapp)
+        about_action = QAction('About', self.app.qapp)
+        edit_action = QAction('Edit selected connection', self.app.qapp)
+        delete_action = QAction('Delete selected connection', self.app.qapp)
 
         save_action.triggered.connect(lambda: self.wrapper_save(True))
         exit_action.triggered.connect(QtCore.QCoreApplication.quit)
@@ -245,18 +249,18 @@ class Display():
 
                 self.app.logger.info('Build delete ssh warning ui')
                 result = window.exec_()
-                self.app.delete_connection_process(result, item.data(999))
+                self.app.delete_connection_process((True if result == QMessageBox.Yes else False), item.data(999))
                 return self.refresh_connection_list()
 
         window.setText("""
         <div style="color:red">Deleting all the configuration</div>
         <div>Are you sure ?</div>
         <div>{0} exit after pressing yes button</div>
-        """.format(self.app.program_name))
+        """.format(self.app.NAME))
         self.app.logger.info('Build delete config warning ui')
         result = window.exec_()
-        self.app.delete_config_process(result)
-        return QtCore.QCoreApplication.quit()
+        self.app.delete_config_process((True if result == QMessageBox.Yes else False))
+        return QtCore.QCoreApplication.quit() if result == QMessageBox.Yes else self.refresh_connection_list()
 
     def settings_ui(self) -> QDialog:
         """
@@ -385,14 +389,18 @@ class Display():
         """
         window = QMessageBox()
         window.setWindowTitle('About')
+        current_usage = round(psutil.Process(
+            os.getpid()).memory_info().rss / (1024 * 1024))
         window.setText("""
             <div>{0} - version {1}</div>
             <div>2021 - {2}</div>
             <div>Author: <a href="https://github.com/Crash-Zeus">Crash-Zeus</a></div>
+            <div>Current ram usage : {3} mb</div>
         """.format(
-            self.app.program_name,
-            self.app.version,
-            (datetime.now()).year
+            self.app.NAME,
+            self.app.VERSION,
+            (datetime.now()).year,
+            str(current_usage)
         ))
         window.resize(100, 100)
         self.app.logger.info('Build about ui')
@@ -501,7 +509,7 @@ class Display():
 
             Default is light theme
         """
-        self.app.setStyle("Fusion")
+        self.app.qapp.setStyle("Fusion")
         if theme == 'Dark':
             palette = QtGui.QPalette()
             palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
@@ -521,13 +529,13 @@ class Display():
                              QtGui.QColor(42, 130, 218))
             palette.setColor(QtGui.QPalette.HighlightedText, Qt.black)
         else:
-            palette = self.app.default_palette
+            palette = self.default_palette
         self.app.config['uiTheme'] = theme
         self.app.logger.info('Set palette ' + theme)
         if not init:
             if self.app.config['autoSave'] == "True":
                 self.wrapper_save(False)
-        return self.app.setPalette(palette)
+        return self.app.qapp.setPalette(palette)
 
     def set_regex(self, regex: str, input: QLineEdit) -> QLineEdit:
         """

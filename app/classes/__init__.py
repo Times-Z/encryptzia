@@ -1,2 +1,3 @@
 from .Logger import *
-from .Display import *
+from .QApp import *
+from .TApp import *
