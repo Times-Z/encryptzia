@@ -13,7 +13,7 @@ from PyQt5 import QtCore, QtGui
 from datetime import datetime
 
 
-class Display():
+class QApp():
     """
         Display class
         - Used for display management

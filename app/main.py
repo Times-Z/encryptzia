@@ -20,8 +20,9 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import (QApplication, QWidget)
-
-from classes import Display, Logger
+from classes import QApp
+from classes import Tapp
+from classes import Logger
 
 
 class Encryptzia():
@@ -35,10 +36,9 @@ class Encryptzia():
     def __init__(self, sys_argv, mode):
         if mode == 'gui':
             self.qapp = QApplication(sys_argv)
-            self.display: Display = Display(self)
+            self.display: QApp = QApp(self)
         elif mode == 'tui':
-            print('TUI is not currently available')
-            sys.exit(0)
+            self.tapp: Tapp = Tapp()
         self.NAME: str = 'Encryptzia'
         self.ROOT_PATH: str = os.path.dirname(os.path.realpath(__file__))
         with open(self.ROOT_PATH + "/version.dat", "r") as f:
@@ -54,6 +54,7 @@ class Encryptzia():
                           + '.' + str(sys.version_info.micro)
                           )
         self.logger.info(self.NAME + ' ' + self.VERSION)
+        self.logger.info('Display mode : ' + mode)
 
     def run(self) -> QWidget:
         """
@@ -338,6 +339,7 @@ if __name__ == '__main__':
             sys.exit(app.qapp.exec_())
         elif mode == 'tui':
             app = Encryptzia(argv, mode)
+            app.tapp.run()
         raise Exception('Missing argument')
     except Exception as e:
         print(e)
