@@ -151,7 +151,7 @@ deploy:github:
     - eval $(ssh-agent -s)
     - ssh-add ~/.ssh/id_rsa
     - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
-    - git remote show
+    - git remote add publicGithub git@github.com:Crash-Zeus/encryptzia.git
     - git push publicGithub HEAD:main
   only:
     - main
