@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QRegExpValidator, QCursor
 from PyQt5 import QtCore, QtGui
 from datetime import datetime
+import platform
 
 
 class QApp():
@@ -21,7 +22,7 @@ class QApp():
 
     def __init__(self, app):
         self.app = app
-        self.default_palette = QtGui.QGuiApplication.palette()
+        self.default_palette: QtGui.QPalette = QtGui.QGuiApplication.palette()
         self.current_selected: QListWidgetItem = None
         self.show_pass: bool = False
 
@@ -91,8 +92,8 @@ class QApp():
         self.connection_list.customContextMenuRequested.connect(
             self.context_menu)
 
-        file_menu = menu_bar.addMenu('File')
-        edit_menu = menu_bar.addMenu('Edition')
+        file_menu: QMenu = menu_bar.addMenu('File')
+        edit_menu: QMenu = menu_bar.addMenu('Edition')
 
         self.connection_list.sortItems(QtCore.Qt.SortOrder.AscendingOrder)
         self.connection_list.itemClicked.connect(self.define_current_item)
@@ -160,10 +161,10 @@ class QApp():
         """
         window = QDialog()
         window.setWindowTitle(mode + ' connection')
-        data = None
+        data: dict = None
 
         if mode == 'edit' and self.current_selected:
-            data = self.app.get_data_by_item(self.current_selected.data(999))
+            data: dict = self.app.get_data_by_item(self.current_selected.data(999))
 
         main_layout = QVBoxLayout()
         form_layout = QFormLayout()
@@ -388,17 +389,23 @@ class QApp():
             - QMessageBox
         """
         window = QMessageBox()
+        window.setObjectName("about_ui")
+        window.setProperty("cssClass", "about")
         window.setWindowTitle('About')
         current_usage = round(psutil.Process(
             os.getpid()).memory_info().rss / (1024 * 1024))
         window.setText("""
-            <div>{0} - version {1}</div>
-            <div>2021 - {2}</div>
+            <div>{0} - version <span class="version">{1}</span></div>
+            <div>Python version : {2}</div>
+            <div>Qt version : {3}</div>
+            <div>2021 - {4}</div>
             <div>Author: <a href="https://github.com/Crash-Zeus">Crash-Zeus</a></div>
-            <div>Current ram usage : {3} mb</div>
+            <div>Current ram usage : {5} mb</div>
         """.format(
             self.app.NAME,
             self.app.VERSION,
+            platform.python_version(),
+            QtCore.QT_VERSION_STR,
             (datetime.now()).year,
             str(current_usage)
         ))

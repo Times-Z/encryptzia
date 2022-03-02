@@ -13,6 +13,7 @@ import uuid
 import subprocess
 import threading
 import time
+import platform
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
@@ -33,28 +34,28 @@ class Encryptzia():
         - Do process
     """
 
-    def __init__(self, sys_argv, mode):
-        if mode == 'gui':
-            self.qapp = QApplication(sys_argv)
-            self.display: QApp = QApp(self)
-        elif mode == 'tui':
-            self.tapp: Tapp = Tapp()
+    def __init__(self, mode):
         self.NAME: str = 'Encryptzia'
         self.ROOT_PATH: str = os.path.dirname(os.path.realpath(__file__))
-        with open(self.ROOT_PATH + "/version.dat", "r") as f:
-            self.VERSION: str = f.read()
         self.LOG_PATH: str = '/var/log/encryptzia.log'
         self.CONFIG_PATH: str = os.environ.get(
             'HOME') + '/.config/encryptzia/user.json'
+        with open(self.ROOT_PATH + "/version.dat", "r") as f:
+            self.VERSION: str = f.read()
         self.logger: Logger = Logger()
         self.logger.config(self.LOG_PATH)
         self.logger.debug('Os : ' + sys.platform)
-        self.logger.debug('Python version ' + str(sys.version_info.major) +
-                          '.' + str(sys.version_info.minor)
-                          + '.' + str(sys.version_info.micro)
-                          )
+        self.logger.debug('Python version ' + platform.python_version())
         self.logger.info(self.NAME + ' ' + self.VERSION)
         self.logger.info('Display mode : ' + mode)
+        if mode == 'gui':
+            self.qapp = QApplication([])
+            with open(self.ROOT_PATH + '/assets/css/main.css') as f:
+                stylesheet = f.read()
+            self.qapp.setStyleSheet(stylesheet)
+            self.display: QApp = QApp(self)
+        elif mode == 'tui':
+            self.tapp: Tapp = Tapp()
 
     def run(self) -> QWidget:
         """
@@ -332,13 +333,13 @@ if __name__ == '__main__':
             debugpy.listen(('0.0.0.0', 5678))
             debugpy.wait_for_client()
         if mode == 'gui':
-            app = Encryptzia(argv, mode)
+            app = Encryptzia(mode)
             app.qapp.setWindowIcon(QtGui.QIcon(
                 app.ROOT_PATH + '/assets/imgs/icon.png'))
             app.run()
             sys.exit(app.qapp.exec_())
         elif mode == 'tui':
-            app = Encryptzia(argv, mode)
+            app = Encryptzia(mode)
             app.tapp.run()
         raise Exception('Missing argument')
     except Exception as e:
