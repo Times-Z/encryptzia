@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import base64
+from datetime import datetime
 from getopt import getopt
 import json
 import os
@@ -42,6 +43,8 @@ class Encryptzia():
             'HOME') + '/.config/encryptzia/user.json'
         with open(self.ROOT_PATH + "/version.dat", "r") as f:
             self.VERSION: str = f.read()
+        self.RELEASE_DATE: str = time.strftime("%d/%m/%Y", time.gmtime(os.path.getmtime(
+            self.ROOT_PATH + '/version.dat'))) if self.VERSION != 'dev' else (datetime.now()).strftime("%d/%m/%Y")
         self.logger: Logger = Logger()
         self.logger.config(self.LOG_PATH)
         self.logger.debug('Os : ' + sys.platform)

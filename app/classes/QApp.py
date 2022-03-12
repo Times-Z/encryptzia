@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import (QAction, QCheckBox, QDialog,
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QRegExpValidator, QCursor
 from PyQt5 import QtCore, QtGui
-from datetime import datetime
 import platform
 
 
@@ -395,18 +394,18 @@ class QApp():
         current_usage = round(psutil.Process(
             os.getpid()).memory_info().rss / (1024 * 1024))
         window.setText("""
-            <div>{0} - version <span class="version">{1}</span></div>
-            <div>Python version : {2}</div>
-            <div>Qt version : {3}</div>
-            <div>2021 - {4}</div>
+            <div>{0} - version <span id="version">{1}</span></div>
+            <div>Release date : {2}</div>
+            <div>Python version : {3}</div>
+            <div>Qt version : {4}</div>
             <div>Author: <a href="https://github.com/Crash-Zeus">Crash-Zeus</a></div>
             <div>Current ram usage : {5} mb</div>
         """.format(
             self.app.NAME,
             self.app.VERSION,
+            self.app.RELEASE_DATE,
             platform.python_version(),
             QtCore.QT_VERSION_STR,
-            (datetime.now()).year,
             str(current_usage)
         ))
         window.resize(100, 100)
