@@ -52,7 +52,7 @@ class Encryptzia():
         self.logger.info(self.NAME + ' ' + self.VERSION)
         self.logger.info('Display mode : ' + mode)
         if mode == 'gui':
-            self.qapp = QApplication([])
+            self.qapp = QApplication(sys.argv)
             with open(self.ROOT_PATH + '/assets/css/main.css') as f:
                 stylesheet = f.read()
             self.qapp.setStyleSheet(stylesheet)
