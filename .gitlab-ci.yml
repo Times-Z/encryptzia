@@ -153,7 +153,7 @@ deploy:github:
       ssh-add ~/.ssh/id_rsa
       ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
       if [ "$(git remote show | grep publicGithub)" == "" ] ; then
-        git remote add publicGithub git@github.com:Times-Z/munchkin-api.git
+        git remote add publicGithub git@github.com:Times-Z/encryptzia.git
       fi
       git push -u publicGithub HEAD:main
   only:
