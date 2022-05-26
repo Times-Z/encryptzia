@@ -16,7 +16,7 @@ RUN apt-get update \
                         openssh-client \
                         xterm \
                         && rm -rf /var/lib/apt/lists/* \
-                        && pip3 install --no-cache-dir cryptography pytest-qt debugpy psutil \
+                        && pip3 install --no-cache-dir cryptography pytest-qt debugpy psutil textual \
                         && adduser --quiet qtuser \
                         && usermod -aG video qtuser \
                         && usermod -aG sudo qtuser \

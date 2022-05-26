@@ -64,7 +64,7 @@ def create_payload(app: Encryptzia) -> str:
 
 @pytest.fixture
 def app():
-    app = Encryptzia([], 'gui')
+    app = Encryptzia('gui')
     app.CONFIG_PATH = '/tmp/' + secrets.token_urlsafe(randint(1, 20)) + '.json'
 
     print('Encryptzia' + ' version ' + app.VERSION)
