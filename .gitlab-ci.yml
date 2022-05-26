@@ -111,26 +111,26 @@ deploy:release:
     - |- 
         release_id=$(curl \
           -X POST \
-          -u "Crash-Zeus:${GITHUB_TOKEN}" \
+          -u "Times-Z:${GITHUB_TOKEN}" \
           -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/Crash-Zeus/encryptzia/releases \
+          https://api.github.com/repos/Times-Z/encryptzia/releases \
           -d "{\"tag_name\":\"$VERSION\"}" | jq .id)
 
         curl \
-          -u "Crash-Zeus:${GITHUB_TOKEN}" \
+          -u "Times-Z:${GITHUB_TOKEN}" \
           -X POST \
           -H "Accept: application/vnd.github.v3+json" \
           -H "Content-Type: application/vnd.debian.binary-package" \
           --data-binary @$DEB_PATH \
-          https://uploads.github.com/repos/Crash-Zeus/encryptzia/releases/$release_id/assets?name=Encryptzia.deb | jq .state
+          https://uploads.github.com/repos/Times-Z/encryptzia/releases/$release_id/assets?name=Encryptzia.deb | jq .state
 
         curl \
-          -u "Crash-Zeus:${GITHUB_TOKEN}" \
+          -u "Times-Z:${GITHUB_TOKEN}" \
           -X POST \
           -H "Accept: application/vnd.github.v3+json" \
           -H "Content-Type: application/x-zstd" \
           --data-binary @$ARCH_PATH \
-          https://uploads.github.com/repos/Crash-Zeus/encryptzia/releases/$release_id/assets?name=Encryptzia.pkg.tar.zst | jq .state
+          https://uploads.github.com/repos/Times-Z/encryptzia/releases/$release_id/assets?name=Encryptzia.pkg.tar.zst | jq .state
   release:
     name: 'Release $VERSION'
     description: 'Created using gitlab and deploy to github'
